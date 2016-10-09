@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 
+import org.apache.logging.log4j.Level;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -18,6 +19,8 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+
+import cpw.mods.fml.common.FMLLog;
 
 /**
  * 
@@ -44,11 +47,20 @@ public class DLTransformer implements IClassTransformer
     
     /* (IIILnet/minecraft/world/EnumSkyBlock;)I */
     private String targetMethodDesc = "(IIILahn;)I";
+        	
+	private static void log(String message)
+	{
+		FMLLog.log("DynamicLights", Level.INFO, "%s", message);
+	}
+
+	private static void error(String message)
+	{
+		FMLLog.log("DynamicLights", Level.ERROR, "%s", message);
+	}
     
     @Override
     public byte[] transform(String name, String newName, byte[] bytes)
     {
-        //System.out.println("transforming: "+name);
         if (name.equals(classNameWorld))
         {
             return handleWorldTransform(bytes, true);
@@ -67,7 +79,7 @@ public class DLTransformer implements IClassTransformer
     
     private byte[] handleWorldTransform(byte[] bytes, boolean obf)
     {
-        System.out.println("**************** Dynamic Lights transform running on World, obf: "+obf+" *********************** ");
+    	log("Patching World, obf: " + obf);
         ClassNode classNode = new ClassNode();
         ClassReader classReader = new ClassReader(bytes);
         classReader.accept(classNode, 0);
@@ -77,11 +89,8 @@ public class DLTransformer implements IClassTransformer
         while(methods.hasNext())
         {
             MethodNode m = methods.next();
-            if (m.name.equals(computeLightValueMethodName)
-            && m.desc.equals(targetMethodDesc))
-            {
-                System.out.println("In target method! Patching!");
-                
+            if (m.name.equals(computeLightValueMethodName) && m.desc.equals(targetMethodDesc))
+            {                
                 AbstractInsnNode targetNode = null;
                 Iterator<AbstractInsnNode> iter = m.instructions.iterator();
                 boolean deleting = false;
@@ -97,13 +106,11 @@ public class DLTransformer implements IClassTransformer
                         {
                             if (vNode.getOpcode() == ASTORE)
                             {
-                                System.out.println("Bytecode ASTORE 6 case!");
                                 deleting = true;
                                 continue;
                             }
                             else if (vNode.getOpcode() == ISTORE)
                             {
-                                System.out.println("Bytecode ISTORE 6 case!");
                                 replacing = true;
                                 targetNode = (AbstractInsnNode) iter.next();
                                 break;
@@ -150,8 +157,8 @@ public class DLTransformer implements IClassTransformer
                 }
                 catch (Exception e)
                 {
+                	error("Dynamic Lights ASM transform failed T_T");
                     e.printStackTrace();
-                    System.out.println("Dynamic Lights ASM transform failed T_T");
                     return bytes;
                 }
                 
@@ -163,9 +170,10 @@ public class DLTransformer implements IClassTransformer
                 // inject new instruction list into method instruction list
                 m.instructions.insertBefore(targetNode, toInject);
                 
-                System.out.println("Patching Complete!");
+            	log("Patching Complete!");
                 break;
             }
+
         }
         
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);

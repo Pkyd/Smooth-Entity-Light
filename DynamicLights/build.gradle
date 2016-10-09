@@ -17,4 +17,51 @@ buildscript {
 
 apply plugin: 'forge'
 
-apply from: '../masterbuild.gradle'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+    
+def mc_version = '1.7.10'
+def mod_version = '2.0.0'
+version = "${mod_version}-MC${mc_version}"
+group = 'atomicstryker.dynamiclights'
+archivesBaseName = 'Dynamic Lights'
+
+dependencies {
+
+}
+
+minecraft {
+    mappings = "stable_12"
+    version = "1.7.10-10.13.4.1558-1.7.10"
+    if (file('../run').exists()) {
+	    runDir = '../run/eclipse'
+    } else {
+	    runDir = 'eclipse'
+    }
+}
+
+processResources {
+    //redo task if any of these properties change
+    inputs.property "version", project.version
+    inputs.property "mc_version", mc_version
+
+    // Replace properties in info files
+    from(sourceSets.main.resources.srcDirs) {
+        include '*.info'
+        expand 'version':project.version,'mc_version':mc_version
+    }
+    // Copy everything else
+    from(sourceSets.main.resources.srcDirs) {
+        exclude '*.info'
+        include 'assets/**/*.*'
+    }
+}
+
+def commonManifest = {
+	attributes.put('FMLCorePlugin', 'atomicstryker.dynamiclights.common.DLFMLCorePlugin')
+	attributes.put('FMLCorePluginContainsFMLMod', 'true')
+}
+
+jar {
+    manifest commonManifest
+}
