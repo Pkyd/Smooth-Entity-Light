@@ -1,3 +1,7 @@
+This is a derivative work of AtomicStryker's Dynamic Lights Minecraft Mod.  LakMoore simply took AtomicStryker's work and butchered it a little until it did exactly the same work in a slightly less intelligent way.
+
+--------------------------------------------
+
 Folder structure this file resides in
 
 ./
@@ -38,11 +42,3 @@ Mods with special Needs:
 -- Dynamic Lights
 - similar to Multi Mine. sourcefile is "common\atomicstryker\dynamiclights\common\DLTransformer.java"
 
--- Stalker Creepers
-- similar to Multi Mine. sourcefile is "common\atomicstryker\stalkercreepers\common\SCTransformer.java"
-
--- Kenshiro Mod
-- uses some hacky stuff for rendering and manipulating punched entities. Will probably crash if broken.
-
--- Advanced Machines and Ropes+
-- rely on external packages, namely IC2 and NEI
