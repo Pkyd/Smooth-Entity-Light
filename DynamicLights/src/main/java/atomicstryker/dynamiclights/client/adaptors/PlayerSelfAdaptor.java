@@ -6,6 +6,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
+import atomicstryker.dynamiclights.client.Config;
 import atomicstryker.dynamiclights.client.DynamicLights;
 import cpw.mods.fml.common.event.FMLInterModComms;
 import cpw.mods.fml.common.event.FMLInterModComms.IMCMessage;
@@ -77,11 +78,11 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                 int prevLight = lightLevel;
                 
                 ItemStack item = thePlayer.getCurrentEquippedItem();
-                lightLevel = DynamicLights.itemsMap.getLightFromItemStack(item);
+                lightLevel = Config.itemsMap.getLightFromItemStack(item);
                 
                 for (ItemStack armor : thePlayer.inventory.armorInventory)
                 {
-                    lightLevel = DynamicLights.maxLight(lightLevel, DynamicLights.itemsMap.getLightFromItemStack(armor));
+                    lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                 }
                 
                 if (prevLight != 0 && lightLevel != prevLight)
@@ -98,15 +99,15 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                     {
                         if (checkPlayerWater(thePlayer)
                         && item != null
-                        && DynamicLights.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getMetadata()) == 1)
+                        && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getItemDamage()) == 1)
                         {
                             lightLevel = 0;
                             
                             for (ItemStack armor : thePlayer.inventory.armorInventory)
                             {
-                                if (armor != null && DynamicLights.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), item.getMetadata()) == 0)
+                                if (armor != null && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), item.getItemDamage()) == 0)
                                 {
-                                    lightLevel = DynamicLights.maxLight(lightLevel, DynamicLights.itemsMap.getLightFromItemStack(armor));
+                                    lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                                 }
                             }
                         }

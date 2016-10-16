@@ -3,9 +3,12 @@ package atomicstryker.dynamiclights.client.adaptors;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
+
+import atomicstryker.dynamiclights.client.Config;
 import atomicstryker.dynamiclights.client.DynamicLights;
 
 /**
@@ -20,6 +23,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 	private EntityPlayer thePlayer;
     private final PartialLightAdaptor[] partialLights;
     private final boolean simpleMode;
+    private final float beamStrength = 16;
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
@@ -35,7 +39,7 @@ public class FloodLightAdaptor extends BaseAdaptor
     {
         if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff)
         {
-            int lightLevel = DynamicLights.floodLights.getLightFromItemStack(thePlayer.getCurrentEquippedItem());
+            int lightLevel = Config.floodLights.getLightFromItemStack(thePlayer.getCurrentEquippedItem());
             
             checkDummyInit(thePlayer.worldObj);
             
@@ -46,10 +50,10 @@ public class FloodLightAdaptor extends BaseAdaptor
                 
                 if (!simpleMode)
                 {
-                    handleLight(partialLights[1], lightLevel, 15f, 15f);
-                    handleLight(partialLights[2], lightLevel, -15f, 15f);
-                    handleLight(partialLights[3], lightLevel, 15f, -15f);
-                    handleLight(partialLights[4], lightLevel, -15f, -15f);
+                    handleLight(partialLights[1], lightLevel, 12f, 9f);
+                    handleLight(partialLights[2], lightLevel, 9f, -12f);
+                    handleLight(partialLights[3], lightLevel, -12f, -9f);
+                    handleLight(partialLights[4], lightLevel, -9f, 12f);
                 }
                 setLightsEnabled(true);
             }
@@ -63,26 +67,34 @@ public class FloodLightAdaptor extends BaseAdaptor
     
     private void handleLight(PartialLightAdaptor source, int light, float yawRot, float pitchRot)
     {
-        Vec3 pos = thePlayer.getPosition(1.0f);
-        thePlayer.rotationPitch += pitchRot;
-        thePlayer.rotationYaw += yawRot;
-        Vec3 look = thePlayer.getLook(1.0f);
-        thePlayer.rotationPitch -= pitchRot;
-        thePlayer.rotationYaw -= yawRot;
-        look = pos.addVector(look.xCoord * 16d, look.yCoord * 16d, look.zCoord * 16d);
-        MovingObjectPosition mop = thePlayer.worldObj.rayTraceBlocks(pos, look);
+        Vec3 origin = thePlayer.getPosition(1.0f);
+
+        Vec3 look = getVector(thePlayer.rotationYaw + yawRot, thePlayer.rotationPitch + pitchRot);
+        
+        look = origin.addVector(look.xCoord * beamStrength, look.yCoord * beamStrength, look.zCoord * beamStrength);
+        MovingObjectPosition mop = thePlayer.worldObj.rayTraceBlocks(origin, look);
         if (mop != null)
         {
-            int dist = (int) Math.round(thePlayer.getDistance(mop.blockX+0.5d, mop.blockY+0.5d, mop.blockZ+0.5d));
-            source.lightLevel = light - dist;
-            source.entity.posX = mop.blockX+0.5d;
-            source.entity.posY = mop.blockY+0.5d;
-            source.entity.posZ = mop.blockZ+0.5d;
+            int dist = (int) Math.round(thePlayer.getDistance(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord));
+            source.lightLevel = Math.max(0, light - dist);
+            source.entity.posX = mop.hitVec.xCoord; //.blockX+0.5d;
+            source.entity.posY = mop.hitVec.yCoord; //.blockY+0.5d;
+            source.entity.posZ = mop.hitVec.zCoord; //.blockZ+0.5d;
         }
         else
         {
             source.lightLevel = 0;
         }
+        source.onTick();
+    }
+    
+    public static Vec3 getVector(float rotYaw, float rotPitch)
+    {
+        float f1 = MathHelper.cos(-rotYaw * 0.017453292F - (float)Math.PI);
+        float f2 = MathHelper.sin(-rotYaw * 0.017453292F - (float)Math.PI);
+        float f3 = -MathHelper.cos(-rotPitch * 0.017453292F);
+        float f4 = MathHelper.sin(-rotPitch * 0.017453292F);
+        return Vec3.createVectorHelper((double)(f2 * f3), (double)f4, (double)(f1 * f3));
     }
     
     @Override
@@ -98,29 +110,16 @@ public class FloodLightAdaptor extends BaseAdaptor
         {
             enabled = newEnabled;
             
-            if (!DynamicLights.simpleMode)
-            {
-                for (PartialLightAdaptor p : partialLights)
-                {
-                    if (newEnabled)
-                    {
-                        DynamicLights.addLightSource(p);
-                    }
-                    else
-                    {
-                        DynamicLights.removeLightSource(p);
-                    }
-                }
-            }
-            else
+            for (PartialLightAdaptor p : partialLights)
             {
                 if (newEnabled)
                 {
-                    DynamicLights.addLightSource(partialLights[0]);
+                    p.onTick();
                 }
                 else
                 {
-                    DynamicLights.removeLightSource(partialLights[0]);
+                    p.lightLevel = 0;
+                    p.onTick();
                 }
             }
         }
@@ -133,7 +132,7 @@ public class FloodLightAdaptor extends BaseAdaptor
             for (int i = 0; i < partialLights.length; i++)
             {
                 partialLights[i] = new PartialLightAdaptor(new DummyEntity(world));
-                DynamicLights.addLightSource(partialLights[i]);
+                partialLights[i].onTick();
             }
         }
     }

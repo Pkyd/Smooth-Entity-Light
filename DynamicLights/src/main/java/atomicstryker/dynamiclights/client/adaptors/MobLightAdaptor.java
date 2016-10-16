@@ -5,6 +5,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import atomicstryker.dynamiclights.client.Config;
 import atomicstryker.dynamiclights.client.DynamicLights;
 
 /**
@@ -33,15 +34,15 @@ public class MobLightAdaptor extends BaseAdaptor
 			{
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_gold.png"))
 				{
-					return DynamicLights.itemsMap.getLightFromItemStack(new ItemStack(Items.golden_horse_armor)); // horsearmorgold
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.golden_horse_armor)); // horsearmorgold
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_iron.png"))
 				{
-					return DynamicLights.itemsMap.getLightFromItemStack(new ItemStack(Items.iron_horse_armor)); // horsearmormetal
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.iron_horse_armor)); // horsearmormetal
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_diamond.png"))
 				{
-					return DynamicLights.itemsMap.getLightFromItemStack(new ItemStack(Items.diamond_horse_armor)); // butt stallion
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.diamond_horse_armor)); // butt stallion
 				}
 			}
 		}
@@ -51,10 +52,10 @@ public class MobLightAdaptor extends BaseAdaptor
 
 	private int getMobEquipMaxLight(EntityLivingBase ent)
 	{
-		int light = DynamicLights.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(0));
+		int light = Config.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(0));
 		for (int i = 1; i < 4; i++)
 		{
-			light = DynamicLights.maxLight(light, DynamicLights.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(i)));
+			light = DynamicLights.maxLight(light, Config.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(i)));
 		}
 		return light;
 	}

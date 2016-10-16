@@ -1,6 +1,6 @@
 package atomicstryker.dynamiclights.client.adaptors;
 
-import atomicstryker.dynamiclights.client.DynamicLights;
+import atomicstryker.dynamiclights.client.Config;
 import cpw.mods.fml.common.registry.GameData;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.item.EntityItem;
@@ -30,8 +30,8 @@ public class EntityItemAdaptor extends BaseAdaptor
 				stack = entity.getDataWatcher().getWatchableObjectItemStack(10);
 				if (stack != null)
 				{
-					notWaterProof = DynamicLights.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getMetadata()) == 1;
-					stackLightlevel = DynamicLights.itemsMap.getLightFromItemStack(stack);            		                		
+					notWaterProof = Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getItemDamage()) == 1;
+					stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
 				}            		
 			}
 

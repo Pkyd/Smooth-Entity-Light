@@ -1,5 +1,6 @@
 package atomicstryker.dynamiclights.client.adaptors;
 
+import atomicstryker.dynamiclights.client.Config;
 import atomicstryker.dynamiclights.client.DynamicLights;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -22,10 +23,10 @@ public class PlayerOtherAdaptor extends BaseAdaptor
             }
             else
             {                
-                lightLevel = DynamicLights.itemsMap.getLightFromItemStack(player.getCurrentEquippedItem());
+                lightLevel = Config.itemsMap.getLightFromItemStack(player.getCurrentEquippedItem());
                 for (ItemStack armor : player.inventory.armorInventory)
                 {
-                    lightLevel = DynamicLights.maxLight(lightLevel, DynamicLights.itemsMap.getLightFromItemStack(armor));
+                    lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                 }            	
             }
             

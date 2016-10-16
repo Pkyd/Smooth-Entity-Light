@@ -21,7 +21,7 @@ sourceCompatibility = 1.7
 targetCompatibility = 1.7
     
 def mc_version = '1.7.10'
-def mod_version = '2.0.0'
+def mod_version = '1.3.9a'
 version = "${mod_version}-MC${mc_version}"
 group = 'atomicstryker.dynamiclights'
 archivesBaseName = 'Dynamic Lights'
@@ -31,7 +31,7 @@ dependencies {
 }
 
 minecraft {
-    mappings = "stable_12"
+//    mappings = "stable_12"
     version = "1.7.10-10.13.4.1558-1.7.10"
     if (file('../run').exists()) {
 	    runDir = '../run/eclipse'
