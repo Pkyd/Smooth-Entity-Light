@@ -17,8 +17,8 @@ public class FMLEventHandler
     @SubscribeEvent
     public void onTick(TickEvent.RenderTickEvent tick)
     {   
-        DynamicLights.mcinstance.mcProfiler.startSection("dynamicLightsTick");
-        if (tick.phase == Phase.END && DynamicLights.mcinstance.theWorld != null)
+        ClientProxy.mcinstance.mcProfiler.startSection("dynamicLightsTick");
+        if (tick.phase == Phase.END && ClientProxy.mcinstance.theWorld != null)
         {
             if (!DynamicLights.globalLightsOff && System.currentTimeMillis() >= DynamicLights.nextLightUpdateTime)
             {
@@ -43,7 +43,7 @@ public class FMLEventHandler
                 }
 
                 //Update all the lights we found
-                ConcurrentLinkedQueue<DynamicLightSourceContainer> worldLights = DynamicLights.worldLightsMap.get(DynamicLights.mcinstance.theWorld);
+                ConcurrentLinkedQueue<DynamicLightSourceContainer> worldLights = DynamicLights.worldLightsMap.get(ClientProxy.mcinstance.theWorld);
 
                 if (worldLights != null)
                 {
@@ -54,7 +54,7 @@ public class FMLEventHandler
                         if (tickedLightContainer.onUpdate())
                         {
                             iter.remove();
-                            DynamicLights.mcinstance.theWorld.updateLightByType(EnumSkyBlock.Block, tickedLightContainer.getX(), tickedLightContainer.getY(), tickedLightContainer.getZ());
+                            ClientProxy.mcinstance.theWorld.updateLightByType(EnumSkyBlock.Block, tickedLightContainer.getX(), tickedLightContainer.getY(), tickedLightContainer.getZ());
                             //System.out.println("Dynamic Lights killing off LightSource on dead Entity "+tickedLightContainer.getLightSource().getAttachmentEntity());
                         }
                     }
@@ -62,16 +62,16 @@ public class FMLEventHandler
 
             }
 
-            if (DynamicLights.mcinstance.currentScreen == null && DynamicLights.toggleButton.getIsKeyPressed() && System.currentTimeMillis() >= DynamicLights.nextKeyTriggerTime)
+            if (ClientProxy.mcinstance.currentScreen == null && ClientProxy.toggleButton.getIsKeyPressed() && System.currentTimeMillis() >= ClientProxy.nextKeyTriggerTime)
             {
-                DynamicLights.nextKeyTriggerTime = System.currentTimeMillis() + 1000l;
+                ClientProxy.nextKeyTriggerTime = System.currentTimeMillis() + 1000l;
                 DynamicLights.globalLightsOff = !DynamicLights.globalLightsOff;
-                DynamicLights.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Dynamic Lights globally " + (DynamicLights.globalLightsOff ? "off" : "on")));
+                ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Dynamic Lights globally " + (DynamicLights.globalLightsOff ? "off" : "on")));
 
-                World world = DynamicLights.mcinstance.theWorld;
+                World world = ClientProxy.mcinstance.theWorld;
                 if (world != null)
                 {
-                    ConcurrentLinkedQueue<DynamicLightSourceContainer> worldLights = DynamicLights.worldLightsMap.get(DynamicLights.mcinstance.theWorld);
+                    ConcurrentLinkedQueue<DynamicLightSourceContainer> worldLights = DynamicLights.worldLightsMap.get(ClientProxy.mcinstance.theWorld);
 
                     if (worldLights != null)
                     {
@@ -85,7 +85,7 @@ public class FMLEventHandler
                 }
             }
         }
-        DynamicLights.mcinstance.mcProfiler.endSection();
+        ClientProxy.mcinstance.mcProfiler.endSection();
     }
     
 

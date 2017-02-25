@@ -7,8 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.IBlockAccess;
@@ -40,7 +38,6 @@ public class DynamicLights
 {
     public final static String modId = "DynamicLights";
 
-    static Minecraft mcinstance;
     static PlayerSelfAdaptor thePlayer;
 
     private static IBlockAccess lastWorld;
@@ -58,12 +55,6 @@ public class DynamicLights
      */
     public static boolean globalLightsOff;
     static long nextLightUpdateTime;
-
-    /**
-     * The Keybinding instance to monitor
-     */
-    static KeyBinding toggleButton;
-    static long nextKeyTriggerTime;
 
     /**
      * whether or not the colored lights mod is present

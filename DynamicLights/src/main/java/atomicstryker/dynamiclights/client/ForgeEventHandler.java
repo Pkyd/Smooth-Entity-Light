@@ -160,7 +160,7 @@ public class ForgeEventHandler {
     {
         if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
         {
-            DynamicLights.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
+            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
             DynamicLights.globalLightsOff = true;
         }
     }
