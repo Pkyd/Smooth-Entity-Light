@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.apache.logging.log4j.Logger;
+
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.EnumSkyBlock;
@@ -69,11 +71,13 @@ public class DynamicLights
     // Proxy
     @SidedProxy(clientSide="atomicstryker.dynamiclights.client.ClientProxy", serverSide="atomicstryker.dynamiclights.client.CommonProxy")
     public static CommonProxy proxy;
-
+    
+    public static Logger log;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent evt)
     {
+        log = evt.getModLog();
         proxy.preInit(evt);
     }
     

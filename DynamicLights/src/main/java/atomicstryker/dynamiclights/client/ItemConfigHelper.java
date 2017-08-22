@@ -37,7 +37,7 @@ public class ItemConfigHelper
     {
         if (stack != null)
         {
-            int r = retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getItemDamage());
+            int r = retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getMetadata());
             return r < 0 ? 0 : r;
         }
         return 0;

@@ -1,6 +1,6 @@
 [
 {
-  "modid": "DynamicLights",
+  "modid": "dynamiclights",
   "name": "Dynamic Lights",
   "version": "${version}",
   "description": "Moving Lights aren't possible? OH RLY? Single threaded version of AtomicStryker's Mod.",

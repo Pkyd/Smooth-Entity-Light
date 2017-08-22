@@ -30,7 +30,7 @@ public class EntityItemAdaptor extends BaseAdaptor
 				stack = entity.getDataWatcher().getWatchableObjectItemStack(10);
 				if (stack != null)
 				{
-					notWaterProof = Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getItemDamage()) == 1;
+					notWaterProof = Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getMetadata()) == 1;
 					stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
 				}            		
 			}

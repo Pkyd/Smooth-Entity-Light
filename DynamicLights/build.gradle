@@ -16,28 +16,34 @@ buildscript {
 }
 
 apply plugin: 'forge'
-
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
     
+def java_version = '1.7'
 def mc_version = '1.7.10'
 def mod_version = '1.3.9a'
+def forge_version = '10.13.4.1558'
 version = "${mod_version}-MC${mc_version}"
 group = 'atomicstryker.dynamiclights'
 archivesBaseName = 'Dynamic Lights'
+
+sourceCompatibility = java_version
+targetCompatibility = java_version
 
 dependencies {
 
 }
 
 minecraft {
-//    mappings = "stable_12"
-    version = "1.7.10-10.13.4.1558-1.7.10"
+    mappings = 'stable_12'
+    version = "${mc_version}-${forge_version}-${mc_version}"
     if (file('../run').exists()) {
 	    runDir = '../run/eclipse'
     } else {
 	    runDir = 'eclipse'
     }
+    
+	replaceIn 'DynamicLights.java'
+		replace 'MCVERSION', mc_version
+        replace 'MODVERSION', mod_version
 }
 
 processResources {

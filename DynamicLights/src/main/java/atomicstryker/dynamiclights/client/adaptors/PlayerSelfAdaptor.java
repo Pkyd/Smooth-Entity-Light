@@ -99,13 +99,13 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                     {
                         if (checkPlayerWater(thePlayer)
                         && item != null
-                        && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getItemDamage()) == 1)
+                        && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getMetadata()) == 1)
                         {
                             lightLevel = 0;
                             
                             for (ItemStack armor : thePlayer.inventory.armorInventory)
                             {
-                                if (armor != null && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), item.getItemDamage()) == 0)
+                                if (armor != null && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), item.getMetadata()) == 0)
                                 {
                                     lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                                 }
