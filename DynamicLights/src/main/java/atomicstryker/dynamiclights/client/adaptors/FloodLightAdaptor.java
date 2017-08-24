@@ -23,7 +23,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 	private EntityPlayer thePlayer;
     private final PartialLightAdaptor[] partialLights;
     private final boolean simpleMode;
-    private final float beamStrength = 16;
+    private final float beamStrength = 64;
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
@@ -77,9 +77,9 @@ public class FloodLightAdaptor extends BaseAdaptor
         {
             int dist = (int) Math.round(thePlayer.getDistance(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord));
             source.lightLevel = Math.max(0, light - dist);
-            source.entity.posX = mop.hitVec.xCoord; //.blockX+0.5d;
-            source.entity.posY = mop.hitVec.yCoord; //.blockY+0.5d;
-            source.entity.posZ = mop.hitVec.zCoord; //.blockZ+0.5d;
+            source.entity.posX = mop.hitVec.xCoord;
+            source.entity.posY = mop.hitVec.yCoord;
+            source.entity.posZ = mop.hitVec.zCoord;
         }
         else
         {
@@ -132,6 +132,7 @@ public class FloodLightAdaptor extends BaseAdaptor
             for (int i = 0; i < partialLights.length; i++)
             {
                 partialLights[i] = new PartialLightAdaptor(new DummyEntity(world));
+                world.spawnEntityInWorld(partialLights[i].entity);
                 partialLights[i].onTick();
             }
         }
@@ -144,7 +145,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 		}
     }
     
-    private class DummyEntity extends Entity
+    public class DummyEntity extends Entity
     {
         public DummyEntity(World par1World) { super(par1World); }
         @Override

@@ -1,17 +1,24 @@
 package atomicstryker.dynamiclights.client;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+
+import atomicstryker.dynamiclights.client.adaptors.BaseAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.BrightAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.CreeperAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.EntityBurningAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.EntityItemAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.FloodLightAdaptor;
+import atomicstryker.dynamiclights.client.adaptors.FloodLightAdaptor.DummyEntity;
 import atomicstryker.dynamiclights.client.adaptors.MobLightAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.PlayerOtherAdaptor;
 import atomicstryker.dynamiclights.client.adaptors.PlayerSelfAdaptor;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
@@ -21,20 +28,90 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.world.World;
+import net.minecraftforge.event.entity.EntityEvent.EnteringChunk;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
+import net.minecraftforge.event.world.WorldEvent.Load;
 
-public class ForgeEventHandler {
+public class ForgeEventHandler 
+{    
+    
+    @SubscribeEvent
+    public void onWorldLoad(Load event)
+    {
+        if (event.world.isRemote)
+        {
+            DynamicLights.trackedAdaptors = new HashSet<BaseAdaptor>();
+            DynamicLights.trackedEntities = new HashSet<Entity>();        
+        }
+    }
 
+    @SubscribeEvent
+    public void onDebugOverlay(RenderGameOverlayEvent.Text event)
+    {
+        if(Minecraft.getMinecraft().gameSettings.showDebugInfo)
+        {
+            int lightCount = 0;
+            for (ArrayList<DynamicLightSourceContainer> chunks : DynamicLights.worldLightsMap.get(Minecraft.getMinecraft().theWorld).values())
+            {
+                lightCount += chunks.size();
+            }
+            event.left.add("DL A:" + DynamicLights.trackedAdaptors.size() 
+            + " E:" + DynamicLights.trackedEntities.size()
+            + " C:" + DynamicLights.worldLightsMap.get(Minecraft.getMinecraft().theWorld).size()
+            + " L:" + lightCount);            
+        }
+    }
+
+    @SubscribeEvent
+    public void onEnteringChunk(EnteringChunk event) 
+    {                
+        Entity entity = event.entity;
+        if(entity == null || !entity.isEntityAlive())
+            return;
+
+        World world = entity.worldObj;
+        if(world == null || !world.isRemote)
+            return;
+
+        //only interested if something actually changed
+        if (event.newChunkX == event.oldChunkX && event.newChunkZ == event.oldChunkZ)
+            return;
+
+        //if we are not already tracking this entity then we are not interested
+        //EntityID of the player gets changed so we have to track that differently
+        if (!(entity instanceof EntityPlayer) && !(entity instanceof DummyEntity) && !DynamicLights.trackedEntities.contains(entity))
+            return;
+        
+        //entity's chunk co-ords have not been updated yet
+        ArrayList<DynamicLightSourceContainer> lightListForOldChunk = DynamicLights.getLightListForEntitiesChunk(entity);        
+        DynamicLightSourceContainer lightSource = null;        
+        Iterator<DynamicLightSourceContainer> iter = lightListForOldChunk.iterator();
+        while (iter.hasNext())
+        {
+            lightSource = iter.next();
+            if (lightSource.getLightSource().getAttachmentEntity() == entity)
+            {
+                //remove it from the old list
+                iter.remove();
+                //add it to the new one
+                DynamicLights.getLightListForChunkXZ(world, event.newChunkX, event.newChunkZ).add(lightSource);            
+                break;
+            }
+        }
+    }
+    
     @SubscribeEvent
     public void onJoinWorld(EntityJoinWorldEvent event)
     {
-        if(!event.world.isRemote)
+        Entity entity = event.entity;
+        if(entity == null || !entity.isEntityAlive())
             return;
 
-        Entity entity = event.entity;
-
-        if (!entity.isEntityAlive())
+        World world = entity.worldObj;
+        if(world == null || !world.isRemote)
             return;
         
         if (entity instanceof EntityItem)
@@ -42,9 +119,10 @@ public class ForgeEventHandler {
             if(!Config.lightDroppedItems)
                 return;
 
-            EntityItemAdaptor adapter = new EntityItemAdaptor((EntityItem)entity);
-            adapter.onTick();
-            DynamicLights.trackedEntities.add(adapter);           
+            EntityItemAdaptor adaptor = new EntityItemAdaptor((EntityItem)entity);
+            adaptor.onTick();
+            DynamicLights.trackedAdaptors.add(adaptor);
+            DynamicLights.trackedEntities.add(entity);
         }
         else if (entity instanceof EntityLivingBase && !(entity instanceof EntityPlayer))
         {
@@ -86,20 +164,23 @@ public class ForgeEventHandler {
                 EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
                 adaptor.minLight = minLight;
                 adaptor.onTick();
-                DynamicLights.trackedEntities.add(adaptor);
+                DynamicLights.trackedAdaptors.add(adaptor);
+                DynamicLights.trackedEntities.add(entity);
             }
             else if (minLight > 0)
             {
                 BrightAdaptor adaptor = new BrightAdaptor(entity, minLight);
                 adaptor.onTick();
-                DynamicLights.trackedEntities.add(adaptor);               
+                DynamicLights.trackedAdaptors.add(adaptor);
+                DynamicLights.trackedEntities.add(entity);
             }
 
             if (Config.lightMobEquipment)
             {
-                MobLightAdaptor adapter = new MobLightAdaptor((EntityLivingBase)entity);
-                adapter.onTick();
-                DynamicLights.trackedEntities.add(adapter);               
+                MobLightAdaptor adaptor = new MobLightAdaptor((EntityLivingBase)entity);
+                adaptor.onTick();
+                DynamicLights.trackedAdaptors.add(adaptor);
+                DynamicLights.trackedEntities.add(entity);
             }
 
         }    
@@ -108,35 +189,39 @@ public class ForgeEventHandler {
             if(!Config.lightFlamingArrows)
                 return;
 
-            EntityBurningAdaptor adapter = new EntityBurningAdaptor(entity);
-            adapter.onTick();
-            DynamicLights.trackedEntities.add(adapter);
+            EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
+            adaptor.onTick();
+            DynamicLights.trackedAdaptors.add(adaptor);
+            DynamicLights.trackedEntities.add(entity);
         }
         else if (entity instanceof EntityXPOrb)
         {
             if(!Config.lightXP)
                 return;
 
-            BrightAdaptor adapter = new BrightAdaptor(entity, 10);
-            adapter.onTick();
-            DynamicLights.trackedEntities.add(adapter);
+            BrightAdaptor adaptor = new BrightAdaptor(entity, 10);
+            adaptor.onTick();
+            DynamicLights.trackedAdaptors.add(adaptor);
+            DynamicLights.trackedEntities.add(entity);
         }
         else if (entity instanceof EntityOtherPlayerMP)
         {
             if(!Config.lightOtherPlayers)
                 return;
 
-            PlayerOtherAdaptor adapter = new PlayerOtherAdaptor((EntityOtherPlayerMP)entity);
-            adapter.onTick();
-            DynamicLights.trackedEntities.add(adapter);
+            PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP)entity);
+            adaptor.onTick();
+            DynamicLights.trackedAdaptors.add(adaptor);
+            DynamicLights.trackedEntities.add(entity);
         }
-        else if (entity instanceof EntityPlayerSP)
+        else if (entity instanceof EntityClientPlayerMP)
         {
             if (Config.lightFloodLight)
             {
                 FloodLightAdaptor adaptor = new FloodLightAdaptor(entity, Config.simpleMode);
                 adaptor.onTick();
-                DynamicLights.trackedEntities.add(adaptor);
+                DynamicLights.trackedAdaptors.add(adaptor);
+                DynamicLights.trackedEntities.add(entity);
             }
 
             if (!Config.lightThisPlayer)
@@ -144,7 +229,8 @@ public class ForgeEventHandler {
 
             DynamicLights.thePlayer = new PlayerSelfAdaptor((EntityPlayer)entity);
             DynamicLights.thePlayer.onTick();
-            DynamicLights.trackedEntities.add(DynamicLights.thePlayer);
+            DynamicLights.trackedAdaptors.add(DynamicLights.thePlayer);
+            DynamicLights.trackedEntities.add(entity);
 
             checkForOptifine();         
 

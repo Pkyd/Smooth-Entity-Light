@@ -10,3 +10,8 @@ WildTPMod/
 DynamicLights/.classpath
 
 DynamicLights/.project
+DynamicLights/eclipse
+DynamicLights/out
+*.iml
+*.ipr
+*.iws

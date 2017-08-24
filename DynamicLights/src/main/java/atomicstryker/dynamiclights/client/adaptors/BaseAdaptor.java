@@ -39,6 +39,14 @@ public class BaseAdaptor implements IDynamicLightSource
         enabled = false;
     }
     
+    public void kill()
+    {
+        disableLight();
+        enabled = false;
+        lightLevel = 0;
+        entity = null;
+    }
+    
     protected void checkForchange()
     {
         if (!enabled && lightLevel > 0)

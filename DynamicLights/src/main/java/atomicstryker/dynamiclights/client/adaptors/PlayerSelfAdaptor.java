@@ -136,8 +136,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
     {
         if (!DynamicLights.fmlOverrideEnable)
         {
-            DynamicLights.removeLightSource(this);
-            enabled = false;
+            super.disableLight();
         }
     }
 
