@@ -75,47 +75,36 @@ public class PlayerSelfAdaptor extends BaseAdaptor
             
             if (!DynamicLights.fmlOverrideEnable)
             {
-                int prevLight = lightLevel;
-                
-                ItemStack item = thePlayer.getCurrentEquippedItem();
-                lightLevel = Config.itemsMap.getLightFromItemStack(item);
-                
-                for (ItemStack armor : thePlayer.inventory.armorInventory)
+                if (thePlayer.isBurning())
                 {
-                    lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
-                }
-                
-                if (prevLight != 0 && lightLevel != prevLight)
-                {
-                    lightLevel = 0;
+                    lightLevel = 15;
                 }
                 else
                 {
-                    if (thePlayer.isBurning())
+                    //Get the light from the held item
+                    ItemStack item = thePlayer.getCurrentEquippedItem();
+                    lightLevel = Config.itemsMap.getLightFromItemStack(item);
+                                        
+                    //if we are underwater and the source is extinguishable
+                    boolean inWater = checkPlayerWater(thePlayer);
+                    if (inWater
+                    && item != null
+                    && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getMetadata()) == 1)
                     {
-                        lightLevel = 15;
+                        lightLevel = 0;
                     }
-                    else
+                    
+                    //go through the armor slots looking for brighter items
+                    for (ItemStack armor : thePlayer.inventory.armorInventory)
                     {
-                        if (checkPlayerWater(thePlayer)
-                        && item != null
-                        && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getMetadata()) == 1)
+                        if (armor != null && (!inWater || Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), armor.getMetadata()) == 0))
                         {
-                            lightLevel = 0;
-                            
-                            for (ItemStack armor : thePlayer.inventory.armorInventory)
-                            {
-                                if (armor != null && Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), item.getMetadata()) == 0)
-                                {
-                                    lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
-                                }
-                            }
+                            lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                         }
                     }
                 }
-
-                this.checkForchange();
             }
+            this.checkForchange();
         }
     }
     

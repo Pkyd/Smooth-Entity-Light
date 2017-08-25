@@ -1,7 +1,9 @@
 package atomicstryker.dynamiclights.client;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
@@ -31,6 +33,47 @@ public class ItemConfigHelper
                 e.printStackTrace();
             }
         }
+    }
+    
+    public String toString()
+    {
+        String result = "";
+        
+        Iterator<Entry<ItemData, Integer>> items = dataMap.entrySet().iterator();
+        Entry<ItemData, Integer> entry;
+        while (items.hasNext())
+        {
+            entry = items.next();
+            if (entry.getValue() > 0)
+            {
+                if (result.length() > 0) result += ",";
+                result += entry.getKey().toString() + "=" + entry.getValue();
+            }
+        }        
+
+        return result;
+    }
+   
+    public void addItem(ItemStack stack, int lightLevel)
+    {
+        if (stack != null)
+        {
+            String name = GameData.getItemRegistry().getNameForObject(stack.getItem());  
+            if (name != null)
+            {
+                for (ItemData item : dataMap.keySet())
+                {
+                    if (item.matches(name, stack.getMetadata()))
+                    {
+                        //if we already have an entry, delete it
+                        dataMap.remove(item);
+                    }
+                }
+
+                //add the new entry
+                dataMap.put(new ItemData(name, stack.getMetadata(), WILDCARD), lightLevel);
+            }
+        }                
     }
     
     public int getLightFromItemStack(ItemStack stack)
@@ -116,7 +159,9 @@ public class ItemConfigHelper
         @Override
         public String toString()
         {
-            return nameOf+" "+startMeta+" "+endMeta;
+            return nameOf 
+                    + (startMeta == WILDCARD ? "" : "-" + startMeta)
+                    + (endMeta == WILDCARD ? "" : "-" + endMeta);
         }
         
         public boolean matches(String name, int meta)

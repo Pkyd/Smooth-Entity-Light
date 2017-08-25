@@ -5,6 +5,7 @@ import java.io.File;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.monster.EntityBlaze;
 import net.minecraft.entity.monster.EntityMagmaCube;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
 
@@ -144,6 +145,46 @@ public class Config
         value = config.get(catMobGlow, entity.getClass().getSimpleName(), value).getInt();
         config.save();
         return value;
+    }
+    
+    public static void setHeldLight(ItemStack item, int lightLevel)
+    {
+        itemsMap.addItem(item, lightLevel);
+        Property itemsList = config.get(Configuration.CATEGORY_GENERAL, "Light Items", "torch,glowstone=12,glowstone_dust=10,lit_pumpkin,lava_bucket,redstone_torch=10,redstone=10,golden_helmet=14,easycoloredlights:easycoloredlightsCLStone=-1");
+        itemsList.comment = "Comma separated list of items that shine light when dropped in the World or held in player's or mob's hands.";
+        itemsList.set(itemsMap.toString());
+        config.getCategory(Configuration.CATEGORY_GENERAL).put("Light Items", itemsList);
+        config.save();
+    }
+
+    public static void toggleFloodlight(ItemStack item)
+    {
+        if (floodLights.getLightFromItemStack(item) == 15)
+            floodLights.addItem(item, 0);            
+        else
+            floodLights.addItem(item, 15);                      
+      
+        Property floodLightItems = config.get(catFloodlight, "Flood Light Items", "ender_eye");
+        floodLightItems.comment = "List of comma separated items that shine floodlight while held.";
+        floodLightItems.set(floodLights.toString());
+        
+        config.getCategory(catFloodlight).put("Flood Light Items", floodLightItems);
+        config.save();        
+    }
+
+    public static void toggleWaterproof(ItemStack item)
+    {
+        if (notWaterProofItems.getLightFromItemStack(item) == 1)
+            notWaterProofItems.addItem(item, 0);            
+        else
+            notWaterProofItems.addItem(item, 1);                      
+      
+        Property notWaterProofList = config.get(Configuration.CATEGORY_GENERAL, "Items Turned Off By Water", "torch,lava_bucket");
+        notWaterProofList.comment = "Comma separated list of items that do not give off light when dropped and in water, have to be present in Light Items.";
+        notWaterProofList.set(notWaterProofItems.toString());
+        
+        config.getCategory(catFloodlight).put("Flood Light Items", notWaterProofList);
+        config.save();        
     }
 
 }

@@ -33,6 +33,9 @@ public class FloodLightAdaptor extends BaseAdaptor
 	        partialLights = new PartialLightAdaptor[1];
 		else
 			partialLights = new PartialLightAdaptor[5];
+
+		checkDummyInit(thePlayer.worldObj);
+
 	}
     
     public void onTick()
@@ -40,9 +43,7 @@ public class FloodLightAdaptor extends BaseAdaptor
         if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff)
         {
             int lightLevel = Config.floodLights.getLightFromItemStack(thePlayer.getCurrentEquippedItem());
-            
-            checkDummyInit(thePlayer.worldObj);
-            
+                        
             if (lightLevel > 0)
             {
             	
