@@ -61,12 +61,15 @@ public class ItemConfigHelper
             String name = GameData.getItemRegistry().getNameForObject(stack.getItem());  
             if (name != null)
             {
-                for (ItemData item : dataMap.keySet())
+            		ItemData item;
+            		Iterator<ItemData> items = dataMap.keySet().iterator();
+            		while (items.hasNext())
                 {
-                    if (item.matches(name, stack.getMetadata()))
-                    {
+            			item = items.next();
+            			if (item.matches(name, stack.getMetadata()))
+            			{
                         //if we already have an entry, delete it
-                        dataMap.remove(item);
+                        items.remove();
                     }
                 }
 

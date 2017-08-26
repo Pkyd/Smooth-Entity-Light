@@ -41,7 +41,7 @@ public class Command implements ICommand {
      * @see net.minecraft.command.ICommand#getCommandAliases()
      */
     @Override
-    public List getCommandAliases() {
+    public List<String> getCommandAliases() {
         return null;
     }
 
@@ -50,6 +50,9 @@ public class Command implements ICommand {
      */
     @Override
     public boolean canCommandSenderUseCommand(ICommandSender commandSender) {
+    		if (Config.configLocked)
+    			return false;
+    		
         if(commandSender instanceof EntityPlayer) {
             return true;
         }
@@ -59,7 +62,8 @@ public class Command implements ICommand {
     /* (non-Javadoc)
      * @see net.minecraft.command.ICommand#addTabCompletionOptions(net.minecraft.command.ICommandSender, java.lang.String[])
      */
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public List addTabCompletionOptions(ICommandSender sender, String[] args) {
         return null;
     }
@@ -77,8 +81,13 @@ public class Command implements ICommand {
      */
     @Override
     public void processCommand(ICommandSender commandSender, String[] args) {        
-        if(args.length < 1 || ("water".equalsIgnoreCase(args[0]) && "hand".equalsIgnoreCase(args[0]) && "flood".equalsIgnoreCase(args[0]))) {
-            commandSender.addChatMessage(new ChatComponentText("Need to specify 'hand', 'flood' or 'water'"));
+        if(args.length < 1 || 
+        		("water".equalsIgnoreCase(args[0]) 
+        				&& "hand".equalsIgnoreCase(args[0]) 
+        				&& "flood".equalsIgnoreCase(args[0])
+        				&& "lock".equalsIgnoreCase(args[0])
+        				)) {
+            commandSender.addChatMessage(new ChatComponentText("Need to specify 'hand', 'flood', 'water' or 'lock'."));
             commandSender.addChatMessage(new ChatComponentText(this.getCommandUsage(commandSender)));
             return;
         }
@@ -117,6 +126,12 @@ public class Command implements ICommand {
         if("water".equalsIgnoreCase(args[0])) {
             Config.toggleWaterproof(item);
             commandSender.addChatMessage(new ChatComponentText("Waterproof toggled."));
+            return;            
+        }
+
+        if("lock".equalsIgnoreCase(args[0])) {
+            Config.lock();
+            commandSender.addChatMessage(new ChatComponentText("Config locked."));
             return;            
         }
     }

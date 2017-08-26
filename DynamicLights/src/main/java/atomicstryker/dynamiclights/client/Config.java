@@ -22,6 +22,7 @@ public class Config
     /*
      * Configurable flags
      */
+    public static boolean configLocked;
     public static boolean lightBurningEntities;
     public static boolean lightGlowingEntities;
     public static boolean lightChargingCreepers;
@@ -110,6 +111,10 @@ public class Config
         otherPlayers.comment = "Set to false to disable dynamic light from items held by other players.";
         lightOtherPlayers = otherPlayers.getBoolean();
 
+        Property locked = config.get(Configuration.CATEGORY_GENERAL, "Config Lock", false);
+        locked.comment = "Set to true to disable in-game config changes.";
+        configLocked = locked.getBoolean();
+
         Property updateI = config.get(Configuration.CATEGORY_GENERAL, "Update Interval", 50);
         updateI.comment = "Update Interval time in milliseconds. The lower the better and costlier.";
         updateInterval = updateI.getInt();
@@ -186,5 +191,13 @@ public class Config
         config.getCategory(catFloodlight).put("Flood Light Items", notWaterProofList);
         config.save();        
     }
+
+	public static void lock() {
+        Property locked = config.get(Configuration.CATEGORY_GENERAL, "Config Lock", true);
+        locked.comment = "Set to true to disable in-game config changes.";
+        locked.set(true);
+        configLocked = true;
+        config.save();        
+	}
 
 }
