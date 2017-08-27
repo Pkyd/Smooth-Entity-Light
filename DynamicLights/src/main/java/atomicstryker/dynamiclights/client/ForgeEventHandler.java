@@ -85,8 +85,7 @@ public class ForgeEventHandler
         if (!(entity instanceof EntityPlayer) && !(entity instanceof DummyEntity) && !DynamicLights.trackedEntities.contains(entity))
             return;
         
-        //entity's chunk co-ords have not been updated yet
-        ArrayList<DynamicLightSourceContainer> lightListForOldChunk = DynamicLights.getLightListForEntitiesChunk(entity);        
+        ArrayList<DynamicLightSourceContainer> lightListForOldChunk = DynamicLights.getLightListForChunkXZ(world, event.oldChunkX, event.oldChunkZ);        
         DynamicLightSourceContainer lightSource = null;        
         Iterator<DynamicLightSourceContainer> iter = lightListForOldChunk.iterator();
         while (iter.hasNext())
@@ -232,23 +231,13 @@ public class ForgeEventHandler
             DynamicLights.trackedAdaptors.add(DynamicLights.thePlayer);
             DynamicLights.trackedEntities.add(entity);
 
-            checkForOptifine();         
-
+            checkForOptifine();
         }
         else
         {
             //Do nothing
         }
 
-    }
-    
-    private void checkForOptifine() 
-    {
-        if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
-        {
-            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
-            DynamicLights.globalLightsOff = true;
-        }
     }
     
     @SubscribeEvent
@@ -262,6 +251,15 @@ public class ForgeEventHandler
                 creeper.onTick();
                 DynamicLights.addLightSource(creeper);
             }
+        }
+    }
+    
+    private void checkForOptifine() 
+    {
+        if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
+        {
+            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
+            DynamicLights.globalLightsOff = true;
         }
     }
 

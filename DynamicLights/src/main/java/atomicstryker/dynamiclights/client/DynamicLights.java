@@ -185,7 +185,9 @@ public class DynamicLights {
     }
 
     public static ArrayList<DynamicLightSourceContainer> getLightListForEntitiesChunk(Entity entity) {
-        return getLightListForChunkXZ(entity.worldObj, entity.chunkCoordX, entity.chunkCoordZ);
+    		//Tempting to use entity.chunkCoordX here but that does not report accurate values
+    		//for the Player on the client side for the first few frames
+        return getLightListForChunkXZ(entity.worldObj, (int)entity.posX >> 4, (int)entity.posZ >> 4);    			
     }
 
     public static ArrayList<DynamicLightSourceContainer> getLightListForChunkXZ(World world, int chunkX, int chunkZ) {

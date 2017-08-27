@@ -41,7 +41,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
     @Override
     public void onTick()
     {
-        if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff)
+        if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff && thePlayer.addedToChunk)
         {
             List<IMCMessage> messages = FMLInterModComms.fetchRuntimeMessages(this);
             if (messages.size() > 0)
@@ -105,7 +105,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                 }
             }
             this.checkForchange();
-        }
+        }        
     }
     
     private boolean checkPlayerWater(EntityPlayer thePlayer)

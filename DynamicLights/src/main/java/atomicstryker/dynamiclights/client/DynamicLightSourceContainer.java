@@ -16,6 +16,8 @@ public class DynamicLightSourceContainer
 {
     private final IDynamicLightSource lightSource;
     
+    private int prevLight;
+
     private int prevX;
     private int prevY;
     private int prevZ;
@@ -27,6 +29,7 @@ public class DynamicLightSourceContainer
     public DynamicLightSourceContainer(IDynamicLightSource light)
     {
         lightSource = light;
+        prevLight = light.getLightLevel();
         x = y = z = prevX = prevY = prevZ = 0;
     }
     
@@ -41,7 +44,7 @@ public class DynamicLightSourceContainer
     public boolean onUpdate()
     {
         Entity ent = lightSource.getAttachmentEntity();
-        if (!ent.isEntityAlive())
+        if (ent == null || !ent.isEntityAlive())
         {
             return true;
         }
@@ -50,7 +53,7 @@ public class DynamicLightSourceContainer
         {
             /*
              * This is the critical point, by this we tell Minecraft to ask for the BlockLight value
-             * at the coordinates, which in turn triggers they Dynamic Lights response pointing to
+             * at the coordinates, which in turn triggers the Dynamic Lights response pointing to
              * this Light's value, which in turn has Minecraft update all surrounding Blocks :3
              * 
              * We also have to call an update for the previous coordinates, otherwise they would
@@ -58,6 +61,12 @@ public class DynamicLightSourceContainer
              */
             ent.worldObj.updateLightByType(EnumSkyBlock.Block, x, y, z);
             ent.worldObj.updateLightByType(EnumSkyBlock.Block, prevX, prevY, prevZ);
+            prevLight = lightSource.getLightLevel();
+        } 
+        else if (prevLight != lightSource.getLightLevel()) 
+        {
+            ent.worldObj.updateLightByType(EnumSkyBlock.Block, x, y, z);        	
+            prevLight = lightSource.getLightLevel();
         }
         
         return false;

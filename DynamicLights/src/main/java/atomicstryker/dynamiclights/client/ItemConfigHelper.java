@@ -162,9 +162,9 @@ public class ItemConfigHelper
         @Override
         public String toString()
         {
-            return nameOf 
-                    + (startMeta == WILDCARD ? "" : "-" + startMeta)
-                    + (endMeta == WILDCARD ? "" : "-" + endMeta);
+            return nameOf										//minecraft:torch
+                    + (startMeta < 1 ? "" : "-" + startMeta)		//-0
+                    + (endMeta < 1 ? "" : "-" + endMeta);
         }
         
         public boolean matches(String name, int meta)

@@ -23,7 +23,8 @@ public class FloodLightAdaptor extends BaseAdaptor
 	private EntityPlayer thePlayer;
     private final PartialLightAdaptor[] partialLights;
     private final boolean simpleMode;
-    private final float beamStrength = 64;
+    private final int freeDistance = 8;  //Makes this light source a little more useful/interesting
+    private final float beamStrength = 26.0F;
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
@@ -77,6 +78,7 @@ public class FloodLightAdaptor extends BaseAdaptor
         if (mop != null)
         {
             int dist = (int) Math.round(thePlayer.getDistance(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord));
+            dist = Math.max(0, dist - freeDistance);
             source.lightLevel = Math.max(0, light - dist);
             source.entity.posX = mop.hitVec.xCoord;
             source.entity.posY = mop.hitVec.yCoord;
@@ -101,8 +103,8 @@ public class FloodLightAdaptor extends BaseAdaptor
     @Override
     public void disableLight()
     {
-    	setLightsEnabled(false);
-    	super.disableLight();
+	    	setLightsEnabled(false);
+	    	super.disableLight();
     }
 
     private void setLightsEnabled(boolean newEnabled)

@@ -37,8 +37,7 @@ public class FMLEventHandler {
                 }
 
                 // Update all the lights we found
-                HashMap<Long, ArrayList<DynamicLightSourceContainer>> worldLights = DynamicLights.worldLightsMap
-                        .get(ClientProxy.mcinstance.theWorld);
+                HashMap<Long, ArrayList<DynamicLightSourceContainer>> worldLights = DynamicLights.worldLightsMap.get(ClientProxy.mcinstance.theWorld);
                 if (worldLights == null) {
                     worldLights = new HashMap<Long, ArrayList<DynamicLightSourceContainer>>();
                     DynamicLights.worldLightsMap.put(ClientProxy.mcinstance.theWorld, worldLights);
