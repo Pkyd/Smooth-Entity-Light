@@ -5,24 +5,22 @@ import net.minecraft.entity.Entity;
 public class EntityBurningAdaptor extends BaseAdaptor
 {        
 	public int minLight = 0;
-	
-    public EntityBurningAdaptor(Entity e)
-    {
-    	super(e);
-    }
-    
-    public void onTick()
+ 	
+	public EntityBurningAdaptor(Entity entity) {
+		super(entity);
+	}
+	    
+	@Override
+    public int getLightLevel()
     {
         if (entity.isBurning())
         {
-            lightLevel = 15;
+            return 15;
         }
         else
         {
-            lightLevel = minLight;
+            return minLight;
         }
-        
-        checkForchange();
     }
     
 }

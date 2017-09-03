@@ -60,17 +60,16 @@ public class MobLightAdaptor extends BaseAdaptor
 		return light;
 	}
 
-	public void onTick()
+	@Override
+	public int getLightLevel()
 	{            
 		// infernal mobs yay
 		if (entity.getEntityData().getString("InfernalMobsMod").length() > 0)
 		{
-			lightLevel = 15;
+			return 15;
 		}
 		else
-			lightLevel = getEquipmentLightLevel((EntityLivingBase)entity);
-
-		checkForchange();
+			return getEquipmentLightLevel((EntityLivingBase)entity);
 	}
 
 }

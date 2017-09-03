@@ -1,10 +1,6 @@
 package atomicstryker.dynamiclights.common;
 
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ASTORE;
-import static org.objectweb.asm.Opcodes.ILOAD;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.ISTORE;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.util.Iterator;
 
@@ -16,6 +12,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
@@ -31,23 +28,25 @@ import cpw.mods.fml.common.FMLLog;
  *
  */
 public class DLTransformer implements IClassTransformer
-{
-    
-    /* net/minecraft/World */
-    private String classNameWorld = "ahb";
-    
-    /* net/minecraft/world/IBlockAccess */
-    private String blockAccessJava = "ahl";
-    
-    /* net/minecraft/block/Block */
-    private String blockJava = "aji";
+{    
     
     /* net/minecraft/World.computeLightValue */
-    private String computeLightValueMethodName = "a";
+    private String computeLightValueMethodName = "func_98179_a";   //SRG Method Name
+
+    private final String classNameWorld = "net.minecraft.world.World";
+    private final String targetMethodDesc = "(IIILnet/minecraft/world/EnumSkyBlock;)I";
+    private final String blockAccessJava = "net/minecraft/world/IBlockAccess";    
+    private final String blockJava = "net/minecraft/block/Block";
     
-    /* (IIILnet/minecraft/world/EnumSkyBlock;)I */
-    private String targetMethodDesc = "(IIILahn;)I";
-        	
+    //------------------------------
+    
+    /* net/minecraft/client/multiplayer/WorldClient.removeEntityFromWorld */
+    private String removeEntityFromWorldMethodName = "func_73028_b";   //SRG Method Name
+    
+    private final String classNameWorldClient = "net.minecraft.client.multiplayer.WorldClient";
+    private final String removeEntityFromWorldMethodDesc = "(I)Lnet/minecraft/entity/Entity;";    
+    private final String entityClassName = "net/minecraft/entity/Entity"; 
+    
 	private static void log(String message)
 	{
 		FMLLog.log("DynamicLights", Level.INFO, "%s", message);
@@ -61,22 +60,77 @@ public class DLTransformer implements IClassTransformer
     @Override
     public byte[] transform(String name, String newName, byte[] bytes)
     {
-        if (name.equals(classNameWorld))
+    		boolean obf = name.equals(newName);
+    		
+        if (newName.equals(classNameWorld))
         {
-            return handleWorldTransform(bytes, true);
+            if (obf) computeLightValueMethodName = "computeLightValue";
+            return handleWorldTransform(bytes, obf);
         }
-        else if (name.equals("net.minecraft.world.World")) // MCP testing
+        else if (newName.equals(classNameWorldClient))
         {
-            blockJava = "net/minecraft/block/Block";
-            blockAccessJava = "net/minecraft/world/IBlockAccess";
-            computeLightValueMethodName = "computeLightValue";
-            targetMethodDesc = "(IIILnet/minecraft/world/EnumSkyBlock;)I";
-            return handleWorldTransform(bytes, false);
+        		if (obf) removeEntityFromWorldMethodName = "removeEntityFromWorld";
+            return handleWorldClientTransform(bytes, obf);
         }
         
         return bytes;
     }
+
+    private byte[] handleWorldClientTransform(byte[] bytes, boolean obf)
+    {
+	    	log("Patching WorldClient, obf: " + obf);
+	    	boolean found = false;
+        ClassNode classNode = new ClassNode();
+        ClassReader classReader = new ClassReader(bytes);
+        classReader.accept(classNode, 0);
+        
+        // find method to inject into
+        Iterator<MethodNode> methods = classNode.methods.iterator();
+        while(methods.hasNext())
+        {
+            MethodNode m = methods.next();
+            if (m.name.equals(removeEntityFromWorldMethodName) && m.desc.equals(removeEntityFromWorldMethodDesc))
+            {                
+                AbstractInsnNode targetNode = null;
+                Iterator<AbstractInsnNode> iter = m.instructions.iterator();
+
+                while (iter.hasNext())
+                {
+                    targetNode = (AbstractInsnNode) iter.next();
+                    if (targetNode instanceof JumpInsnNode)
+                    {
+                    		if (targetNode.getOpcode() == IFNULL) {
+                    			
+                                // make new instruction list
+                                InsnList toInject = new InsnList();
+                                
+                                // argument mapping, 2 is the Entity
+                                toInject.add(new VarInsnNode(ALOAD, 2));
+                                
+                                //INVOKESTATIC atomicstryker/dynamiclights/client/DynamicLights.onEntityRemoved (Lnet/minecraft/entity/Entity;)V
+                                AbstractInsnNode node = new MethodInsnNode(INVOKESTATIC, "atomicstryker/dynamiclights/client/DynamicLights", "onEntityRemoved", "(L" + entityClassName + ";)V", false);
+                                toInject.add(node);
+
+                                // inject new instruction list into method instruction list
+                                m.instructions.insert(targetNode, toInject);  
+                                found = true;
+                                break;
+                    		}
+                    }
+                }
+                
+                log("Patching Complete! Found = " + found);
+	            break;
+            }
+        	
+        }
     
+	    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+	    classNode.accept(writer);
+	    return writer.toByteArray();
+	}
+
+        	
     private byte[] handleWorldTransform(byte[] bytes, boolean obf)
     {
     	log("Patching World, obf: " + obf);

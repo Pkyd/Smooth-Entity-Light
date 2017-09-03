@@ -4,16 +4,22 @@ import net.minecraft.entity.Entity;
 
 public class BrightAdaptor extends BaseAdaptor
 {        
-    public BrightAdaptor(Entity e)
+	private int lightLevel = 15;
+
+	public BrightAdaptor(Entity e)
     {
-    	super(e);
-    	this.lightLevel = 15;
+		super(e);
     }
     
     public BrightAdaptor(Entity e, int lightLevel)
     {
-    	super(e);
-    	this.lightLevel = lightLevel;
+    		super(e);
+    		this.lightLevel = lightLevel;
     }
+
+	@Override
+	public int getLightLevel() {
+		return lightLevel;
+	}
 
 }

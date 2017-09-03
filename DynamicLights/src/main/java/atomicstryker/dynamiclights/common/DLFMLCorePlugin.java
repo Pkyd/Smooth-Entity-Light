@@ -9,7 +9,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 })
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("Dynamic Lights")
-@IFMLLoadingPlugin.SortingIndex(999)   //Before Notch to Srg de-obfuscation
+@IFMLLoadingPlugin.SortingIndex(1001)   //After Notch to Srg de-obfuscation
 public class DLFMLCorePlugin implements IFMLLoadingPlugin
 {
 

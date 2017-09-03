@@ -1,6 +1,5 @@
 package atomicstryker.dynamiclights.client;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.lwjgl.input.Keyboard;
@@ -13,7 +12,6 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
-import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 
 public class ClientProxy extends CommonProxy {
@@ -30,7 +28,6 @@ public class ClientProxy extends CommonProxy {
 
         DynamicLights.globalLightsOff = false;
         ClientProxy.mcinstance = FMLClientHandler.instance().getClient();
-        DynamicLights.worldLightsMap = new HashMap<World, HashMap<Long, ArrayList<DynamicLightSourceContainer>>>();
         DynamicLights.lightValueMap = new HashMap<Class<? extends Entity>, Boolean>();
         DynamicLights.glowValueMap = new HashMap<Class<? extends Entity>, Integer>();
 

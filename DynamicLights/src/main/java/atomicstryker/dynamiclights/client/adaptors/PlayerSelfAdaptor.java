@@ -39,7 +39,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
 	}
 
     @Override
-    public void onTick()
+    public int getLightLevel()
     {
         if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff && thePlayer.addedToChunk)
         {
@@ -52,23 +52,16 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                 {
                     if (!DynamicLights.fmlOverrideEnable)
                     {
-                    	DynamicLights.fmlOverrideEnable = true;
-                        if (!enabled)
-                        {
-                            lightLevel = 15;
-                            enableLight();
-                        }
+                    		DynamicLights.fmlOverrideEnable = true;
+		                	return 15;
                     }
                 }
                 else if (imcMessage.key.equalsIgnoreCase("forceplayerlightoff"))
                 {
                     if (DynamicLights.fmlOverrideEnable)
                     {
-                    	DynamicLights.fmlOverrideEnable = false;
-                        if (enabled)
-                        {
-                            disableLight();
-                        }
+                    		DynamicLights.fmlOverrideEnable = false;
+                    		return 0;
                     }
                 }
             }
@@ -77,13 +70,13 @@ public class PlayerSelfAdaptor extends BaseAdaptor
             {
                 if (thePlayer.isBurning())
                 {
-                    lightLevel = 15;
+                    return 15;
                 }
                 else
                 {
                     //Get the light from the held item
                     ItemStack item = thePlayer.getCurrentEquippedItem();
-                    lightLevel = Config.itemsMap.getLightFromItemStack(item);
+                    int lightLevel = Config.itemsMap.getLightFromItemStack(item);
                                         
                     //if we are underwater and the source is extinguishable
                     boolean inWater = checkPlayerWater(thePlayer);
@@ -102,10 +95,11 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                             lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                         }
                     }
+                    return lightLevel;
                 }
             }
-            this.checkForchange();
         }        
+        return 0;
     }
     
     private boolean checkPlayerWater(EntityPlayer thePlayer)
@@ -119,14 +113,12 @@ public class PlayerSelfAdaptor extends BaseAdaptor
         }
         return false;
     }
-        
-    @Override
-    public void disableLight()
-    {
-        if (!DynamicLights.fmlOverrideEnable)
-        {
-            super.disableLight();
-        }
-    }
+    
+	@Override
+	public void kill() {
+		super.kill();
+		thePlayer = null;
+	}
+
 
 }

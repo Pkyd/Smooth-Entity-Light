@@ -9,6 +9,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 import atomicstryker.dynamiclights.client.Config;
+import atomicstryker.dynamiclights.client.DynamicLightSourceContainer;
 import atomicstryker.dynamiclights.client.DynamicLights;
 
 /**
@@ -35,36 +36,43 @@ public class FloodLightAdaptor extends BaseAdaptor
 		else
 			partialLights = new PartialLightAdaptor[5];
 
-		checkDummyInit(thePlayer.worldObj);
+		Entity dummyEntity;
+		DynamicLightSourceContainer sources;
+        for (int i = 0; i < partialLights.length; i++)
+        {
+        		dummyEntity = new DummyEntity(entity.worldObj);            
+            sources = (DynamicLightSourceContainer)entity.getExtendedProperties(DynamicLights.modId);
+            if(sources == null) {
+            		sources = new DynamicLightSourceContainer(entity, entity.worldObj);
+            		entity.registerExtendedProperties(DynamicLights.modId, sources);
+            }
+            partialLights[i] = new PartialLightAdaptor(dummyEntity);
+            sources.addLightSource(partialLights[i]);        		
+            thePlayer.worldObj.spawnEntityInWorld(dummyEntity);
+        }
 
 	}
     
-    public void onTick()
+    //Doesn't get the level of this adaptor but does update the dummy adaptors
+    public int getLightLevel()
     {
         if (thePlayer != null && thePlayer.isEntityAlive() && !DynamicLights.globalLightsOff)
         {
             int lightLevel = Config.floodLights.getLightFromItemStack(thePlayer.getCurrentEquippedItem());
                         
-            if (lightLevel > 0)
+            handleLight(partialLights[0], lightLevel, 0f, 0f);
+            
+            if (!simpleMode)
             {
-            	
-                handleLight(partialLights[0], lightLevel, 0f, 0f);
-                
-                if (!simpleMode)
-                {
-                    handleLight(partialLights[1], lightLevel, 12f, 9f);
-                    handleLight(partialLights[2], lightLevel, 9f, -12f);
-                    handleLight(partialLights[3], lightLevel, -12f, -9f);
-                    handleLight(partialLights[4], lightLevel, -9f, 12f);
-                }
-                setLightsEnabled(true);
-            }
-            else
-            {
-                setLightsEnabled(false);
+                handleLight(partialLights[1], lightLevel, 12f, 9f);
+                handleLight(partialLights[2], lightLevel, 9f, -12f);
+                handleLight(partialLights[3], lightLevel, -12f, -9f);
+                handleLight(partialLights[4], lightLevel, -9f, 12f);
             }
         }
-	
+
+        //this adaptor does not give off light at the player's location
+        return 0;	
     }
     
     private void handleLight(PartialLightAdaptor source, int light, float yawRot, float pitchRot)
@@ -88,7 +96,6 @@ public class FloodLightAdaptor extends BaseAdaptor
         {
             source.lightLevel = 0;
         }
-        source.onTick();
     }
     
     public static Vec3 getVector(float rotYaw, float rotPitch)
@@ -100,51 +107,24 @@ public class FloodLightAdaptor extends BaseAdaptor
         return Vec3.createVectorHelper((double)(f2 * f3), (double)f4, (double)(f1 * f3));
     }
     
-    @Override
-    public void disableLight()
-    {
-	    	setLightsEnabled(false);
-	    	super.disableLight();
-    }
+	@Override
+	public void kill() {
+		super.kill();
+		thePlayer = null;
+	}
 
-    private void setLightsEnabled(boolean newEnabled)
-    {
-        if (newEnabled != enabled)
-        {
-            enabled = newEnabled;
-            
-            for (PartialLightAdaptor p : partialLights)
-            {
-                if (newEnabled)
-                {
-                    p.onTick();
-                }
-                else
-                {
-                    p.lightLevel = 0;
-                    p.onTick();
-                }
-            }
-        }
-    }
-
-    private void checkDummyInit(World world)
-    {
-        if (partialLights[0] == null)
-        {
-            for (int i = 0; i < partialLights.length; i++)
-            {
-                partialLights[i] = new PartialLightAdaptor(new DummyEntity(world));
-                world.spawnEntityInWorld(partialLights[i].entity);
-                partialLights[i].onTick();
-            }
-        }
-    }
     
     private class PartialLightAdaptor extends BaseAdaptor
     {
-        PartialLightAdaptor(Entity entity) {
+    		public int lightLevel = 0;
+
+    		PartialLightAdaptor(Entity entity) {
 			super(entity);
+		}
+
+		@Override
+		public int getLightLevel() {
+			return lightLevel;
 		}
     }
     

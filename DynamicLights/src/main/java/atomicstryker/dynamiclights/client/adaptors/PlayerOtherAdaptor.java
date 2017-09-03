@@ -11,26 +11,32 @@ public class PlayerOtherAdaptor extends BaseAdaptor
         
         public PlayerOtherAdaptor(EntityPlayer p)
         {
-        	super(p);
+        		super(p);
             player = p;
         }
         
-        public void onTick()
+        public int getLightLevel()
         {
             if (player.isBurning())
             {
-                lightLevel = 15;
+                return 15;
             }
             else
             {                
-                lightLevel = Config.itemsMap.getLightFromItemStack(player.getCurrentEquippedItem());
+                int lightLevel = Config.itemsMap.getLightFromItemStack(player.getCurrentEquippedItem());
                 for (ItemStack armor : player.inventory.armorInventory)
                 {
                     lightLevel = DynamicLights.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
                 }            	
-            }
-            
-            checkForchange();
+                return lightLevel;
+            }            
         }
+        
+    	@Override
+    	public void kill() {
+    		super.kill();
+    		player = null;
+    	}
+
              
     }
