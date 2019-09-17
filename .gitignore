@@ -7,15 +7,11 @@ z*/
 BloodMagic/
 WildTPMod/
 
-DynamicLights/.classpath
-
-DynamicLights/.project
-DynamicLights/eclipse
-DynamicLights/out
 *.iml
 *.ipr
 *.iws
 **/.settings/
 /.gradle/
-DynamicLights/run
 SmoothEntityLights/run
+.classpath
+.project
