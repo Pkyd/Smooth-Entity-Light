@@ -16,3 +16,5 @@ DynamicLights/out
 *.ipr
 *.iws
 **/.settings/
+/.gradle/
+DynamicLights/run

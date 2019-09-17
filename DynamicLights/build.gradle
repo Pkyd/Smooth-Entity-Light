@@ -11,25 +11,29 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+        classpath "net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT"
     }
 }
 
-apply plugin: 'forge'
+apply plugin: "forge"
     
 def java_version = '1.7'
 def mc_version = '1.7.10'
-def mod_version = '2.0.0'
+def mod_version = '3.0.0'
 def forge_version = '10.13.4.1558'
 version = "${mod_version}-MC${mc_version}"
-group = 'atomicstryker.dynamiclights'
-archivesBaseName = 'Dynamic Lights'
+group = 'lakmoore.sel'
+archivesBaseName = 'SmoothEntityLight'
 
 sourceCompatibility = java_version
 targetCompatibility = java_version
 
 dependencies {
 
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.14'
 }
 
 minecraft {
@@ -41,7 +45,7 @@ minecraft {
 	    runDir = 'run'
     }
     
-	replaceIn 'DynamicLights.java'
+	replaceIn 'SEL.java'
 		replace 'MCVERSION', mc_version
         replace 'MODVERSION', mod_version
 
@@ -66,7 +70,7 @@ processResources {
 }
 
 def commonManifest = {
-	attributes.put('FMLCorePlugin', 'atomicstryker.dynamiclights.common.DLFMLCorePlugin')
+	attributes.put('FMLCorePlugin', 'lakmoore.sel.common.FMLCorePlugin')
 	attributes.put('FMLCorePluginContainsFMLMod', 'true')
 }
 

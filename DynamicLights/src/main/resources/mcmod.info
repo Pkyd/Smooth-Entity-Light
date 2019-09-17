@@ -1,15 +1,13 @@
 [
 {
-  "modid": "dynamiclights",
-  "name": "Dynamic Lights",
+  "modid": "sel",
+  "name": "Smooth Entity Light",
   "version": "${version}",
-  "description": "Moving Lights aren't possible? OH RLY? Single threaded version of AtomicStryker's Mod.",
+  "description": "Smooth light version of AtomicStryker's Dynamic Lights Mod",
   "mcversion": "${mc_version}",
-  "url": "http://www.minecraftforum.net/topic/184426-",
-  "authors": [
-    "AtomicStryker", "LakMoore"
-  ],
+  "url": "https://www.curseforge.com/minecraft/mc-mods/smooth-entity-light",
+  "authors": ["AtomicStryker", "LakMoore"],
   "credits": "",
-  "logoFile": "assets/dynamiclights/textures/gui/logo.png"
+  "logoFile": "assets/sel/textures/gui/logo.png"
 }
 ]

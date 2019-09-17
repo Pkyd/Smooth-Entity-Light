@@ -1,3 +1,6 @@
+3.0.0
+Forked to Smooth Entity Lights by LakMoore
+
 2.0.0
 - Changed the Modules to Adaptors
 - Brought the processing and config into the main module (one list of entities to check)
