@@ -56,6 +56,7 @@ public class Transformer implements IClassTransformer {
 		boolean obf = !name.equals(newName);
 
 		if (newName.equals(classNameWorldClient)) {
+			log("********* INSIDE TRANSFORMER ABOUT TO PATCH: " + name + "|" + newName);
 			return handleWorldClientTransform(bytes, obf);
 		} else if (newName.equals(classWorldRendererName)) {
 			log("********* INSIDE TRANSFORMER ABOUT TO PATCH: " + name + "|" + newName);
@@ -82,8 +83,6 @@ public class Transformer implements IClassTransformer {
 		while (methods.hasNext() && !found) {
 			MethodNode m = methods.next();
 			
-			System.out.println(m.name + " | " + m.desc);
-
 			if (m.name.equals(methodName) && m.desc.equals(methodUpdateRendererDesc)) {
 				// Found the correct method
 				AbstractInsnNode targetNode = null;
@@ -94,21 +93,17 @@ public class Transformer implements IClassTransformer {
 					if (targetNode instanceof TypeInsnNode && targetNode.getOpcode() == NEW) {
 						TypeInsnNode node = (TypeInsnNode) targetNode;
 						
-						System.out.println(node.desc);
-
 						if (node.desc.equals(classChunkCacheNameOLD)) {
 							node.desc = classChunkCacheNameNEW;
-							log("Patched New!");
+							log("Patched ChunkCache New!");
 						}
 					} else if (targetNode instanceof MethodInsnNode && targetNode.getOpcode() == INVOKESPECIAL) {
 						MethodInsnNode node = (MethodInsnNode) targetNode;
 
-						System.out.println(node.owner);
-
 						if (node.owner.equals(classChunkCacheNameOLD)) {
 							node.owner = classChunkCacheNameNEW;
 							found = true;
-							log("Patched Init!");
+							log("Patched ChunkCache Init!");
 						}
 					}
 				}
@@ -148,7 +143,6 @@ public class Transformer implements IClassTransformer {
 					if (targetNode instanceof MethodInsnNode) {
 						MethodInsnNode node = (MethodInsnNode) targetNode;
 						if (node.owner.equals("net/minecraft/world/World") && node.name.equals("<init>")) {
-							System.out.println(node.owner);
 							node.owner = "lakmoore/sel/world/WorldSEL";
 							continue;
 						}
@@ -184,7 +178,7 @@ public class Transformer implements IClassTransformer {
 					}
 				}
 
-				log("Patching Complete! Found = " + found);
+				log("World Patching Complete! Found = " + found);
 				break;
 			}
 
