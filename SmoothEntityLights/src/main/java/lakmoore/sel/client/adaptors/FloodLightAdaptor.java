@@ -39,12 +39,9 @@ public class FloodLightAdaptor extends BaseAdaptor
 		SELSourceContainer sources;
         for (int i = 0; i < partialLights.length; i++)
         {
-        		dummyEntity = new DummyEntity(entity.worldObj);            
-            sources = (SELSourceContainer)entity.getExtendedProperties(SEL.modId);
-            if(sources == null) {
-            		sources = new SELSourceContainer(entity, entity.worldObj);
-            		entity.registerExtendedProperties(SEL.modId, sources);
-            }
+        	dummyEntity = new DummyEntity(entity.worldObj);            
+    		sources = new SELSourceContainer(dummyEntity, entity.worldObj);
+    		dummyEntity.registerExtendedProperties(SEL.modId, sources);
             partialLights[i] = new PartialLightAdaptor(dummyEntity);
             sources.addLightSource(partialLights[i]);        		
             thePlayer.worldObj.spawnEntityInWorld(dummyEntity);
@@ -53,6 +50,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 	}
     
     //Doesn't get the level of this adaptor but does update the dummy adaptors
+	@Override
     public int getLightLevel()
     {
         if (thePlayer != null && thePlayer.isEntityAlive() && !SEL.disabled)
@@ -63,10 +61,10 @@ public class FloodLightAdaptor extends BaseAdaptor
             
             if (!simpleMode)
             {
-                handleLight(partialLights[1], lightLevel, 12f, 9f);
-                handleLight(partialLights[2], lightLevel, 9f, -12f);
-                handleLight(partialLights[3], lightLevel, -12f, -9f);
-                handleLight(partialLights[4], lightLevel, -9f, 12f);
+                handleLight(partialLights[1], lightLevel, 0f, 8f);
+                handleLight(partialLights[2], lightLevel, 0f, -8f);
+                handleLight(partialLights[3], lightLevel, -8f, 0f);
+                handleLight(partialLights[4], lightLevel, 8f, 0f);
             }
         }
 
@@ -76,7 +74,14 @@ public class FloodLightAdaptor extends BaseAdaptor
     
     private void handleLight(PartialLightAdaptor source, int light, float yawRot, float pitchRot)
     {
-        Vec3 origin = thePlayer.getPosition(1.0f);
+    	if (light == 0) {
+            source.lightLevel = 0;
+            source.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+            return;
+    	}
+
+    	// Considers eye-height
+    	Vec3 origin = thePlayer.getPosition(1.0f);
 
         Vec3 look = getVector(thePlayer.rotationYaw + yawRot, thePlayer.rotationPitch + pitchRot);
         
@@ -87,13 +92,12 @@ public class FloodLightAdaptor extends BaseAdaptor
             int dist = (int) Math.round(thePlayer.getDistance(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord));
             dist = Math.max(0, dist - freeDistance);
             source.lightLevel = Math.max(0, light - dist);
-            source.entity.posX = mop.hitVec.xCoord;
-            source.entity.posY = mop.hitVec.yCoord;
-            source.entity.posZ = mop.hitVec.zCoord;
+            source.entity.setPosition(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord);
         }
         else
         {
             source.lightLevel = 0;
+            source.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
         }
     }
     
@@ -115,9 +119,9 @@ public class FloodLightAdaptor extends BaseAdaptor
     
     private class PartialLightAdaptor extends BaseAdaptor
     {
-    		public int lightLevel = 0;
+		public int lightLevel = 0;
 
-    		PartialLightAdaptor(Entity entity) {
+		PartialLightAdaptor(Entity entity) {
 			super(entity);
 		}
 
@@ -129,7 +133,15 @@ public class FloodLightAdaptor extends BaseAdaptor
     
     public class DummyEntity extends Entity
     {
-        public DummyEntity(World par1World) { super(par1World); }
+        public DummyEntity(World par1World) { 
+        	super(par1World); 
+        	this.height = 0f;
+        	this.width = 0f;
+        	
+        	// To make the entity visible for debugging, give it size
+//        	this.height = 0.5f;
+//        	this.width = 0.5f;        	
+        }
         @Override
         protected void entityInit(){}
         @Override

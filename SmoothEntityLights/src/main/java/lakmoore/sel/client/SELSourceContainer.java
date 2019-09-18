@@ -89,7 +89,7 @@ public class SELSourceContainer implements IExtendedEntityProperties
 		if (!SEL.disabled) {
 			for (BaseAdaptor adaptor : adaptors) {
 				light = LightUtils.maxLight(light, adaptor.getLightLevel());
-				if (light >= 15) break;
+				// Don't exit loop early, getLightLevel() might also update the source!
 			}
 			light = Math.min(15, light);
 		}

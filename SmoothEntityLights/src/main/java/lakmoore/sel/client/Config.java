@@ -98,7 +98,7 @@ public class Config
         xpLight.comment = "Set to false to disable light from XP orbs.";
         lightXP = xpLight.getBoolean();
 
-        simpleMode = config.get(catFloodlight, "Simple Floodlight Mode", true, "Simulate a single point light instead of a cone of light (May be slower!)").getBoolean(true);
+        simpleMode = config.get(catFloodlight, "Simple Floodlight Mode", false, "Simulate a single point light instead of a cone of light").getBoolean(false);
 
         Property floodLightItems = config.get(catFloodlight, "Flood Light Items", "ender_eye");
         floodLightItems.comment = "List of comma separated items that shine floodlight while held.";
