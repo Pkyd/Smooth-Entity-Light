@@ -1,3 +1,5 @@
+import groovy.json.*
+
 buildscript {
     repositories {
         mavenCentral()
@@ -15,30 +17,39 @@ buildscript {
     }
 }
 
-apply plugin: "forge"
-    
-def java_version = '1.7'
-def mc_version = '1.7.10'
-def mod_version = '3.0.0'
-def forge_version = '10.13.4.1558'
-version = "${mod_version}-MC${mc_version}"
-group = 'lakmoore.sel'
-archivesBaseName = 'SmoothEntityLight'
+plugins {
+	id "com.matthewprenger.cursegradle" version "1.2.0"
+}
 
-sourceCompatibility = java_version
-targetCompatibility = java_version
+apply plugin: "forge"
+
+// Define properties file
+ext.configFile = file "build.properties"
+configFile.withReader {
+    // Load config.  It shall from now be referenced as simply config or project.config
+    def prop = new Properties()
+    prop.load(it)
+    project.ext.config = new ConfigSlurper().parse prop
+}
+
+version = "${config.mod_version}.${config.build_number}-MC${config.mc_version}"
+group = config.group
+archivesBaseName = config.archivesBaseName
+
+sourceCompatibility = config.java_version
+targetCompatibility = config.java_version
 
 dependencies {
 
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.14'
+    gradleVersion = config.gradleVersion
 }
 
 minecraft {
-    mappings = 'stable_12'
-    version = "${mc_version}-${forge_version}-${mc_version}"
+    mappings = config.mappings
+    version = "${config.mc_version}-${config.forge_version}-${config.mc_version}"
     if (file('../run').exists()) {
 	    runDir = '../run/eclipse'
     } else {
@@ -46,20 +57,20 @@ minecraft {
     }
     
 	replaceIn 'SEL.java'
-		replace 'MCVERSION', mc_version
-        replace 'MODVERSION', mod_version
+		replace 'MCVERSION', config.mc_version
+        replace 'MODVERSION', "${config.mod_version}.${config.build_number}"
 
 }
 
 processResources {
     //redo task if any of these properties change
-    inputs.property "version", project.version
-    inputs.property "mc_version", mc_version
+    inputs.property "version", "${config.mod_version}.${config.build_number}"
+    inputs.property "mc_version", config.mc_version
 
     // Replace properties in info files
     from(sourceSets.main.resources.srcDirs) {
         include '*.info'
-        expand 'version':project.version, 'mc_version':mc_version
+        expand 'version':"${config.mod_version}.${config.build_number}", 'mc_version':config.mc_version
     }
 
     // Copy everything else
@@ -70,10 +81,60 @@ processResources {
 }
 
 def commonManifest = {
-	attributes.put('FMLCorePlugin', 'lakmoore.sel.common.FMLCorePlugin')
+	attributes.put('FMLCorePlugin', config.corePlugin)
 	attributes.put('FMLCorePluginContainsFMLMod', 'true')
 }
 
 jar {
     manifest commonManifest
+}
+
+curseforge {
+	apiKey = project.curseForgeApiKey
+	project {
+		id = config.curseProjecId
+		changelog = file('src/main/resources/changelog.txt')
+		releaseType = 'release'
+		addGameVersion "${config.mc_version}"
+
+		mainArtifact(jar) {
+			displayName = "${config.archivesBaseName}-${config.mod_version}.${config.build_number}-MC${config.mc_version}"
+			relations {
+    		}
+		}		
+	}
+}
+
+//call curseforge, then update the version file and increment the build number ready for next time
+task lakPublish(dependsOn: 'curseforge') {    
+    group = 'upload'
+    description = 'upload then update version and build number, ready for next time'
+	doLast {
+	    def updateJsonFile = file(System.getProperty("user.home") + "/Dropbox/MinecraftModFiles/versions/${config.archivesBaseName}.json")
+	    if (updateJsonFile.exists()) {
+		    def updateJson = new JsonSlurper().parse(updateJsonFile) as Map
+			
+			// Ensure there is a section for this MC version
+			updateJson.get("${config.mc_version}" as String, [:])
+		
+		    // Add to version section
+		    updateJson."${config.mc_version}"."${config.mod_version}.${config.build_number}" = "See changelog.txt"
+		
+		    // Update promos
+		    updateJson.promos."${config.mc_version}-latest" = "${config.mod_version}.${config.build_number}"
+		    updateJson.promos."${config.mc_version}-recommended" = "${config.mod_version}.${config.build_number}"
+		
+		    updateJsonFile.write(JsonOutput.prettyPrint(JsonOutput.toJson(updateJson)))
+	    }
+	
+	    def cmd = "git tag -a v${config.mod_version}.${config.build_number} -m ''"
+	    println cmd.execute().text.split().size()
+		//def proc = cmd.execute()
+		//proc.waitFor()
+	    
+	    config.build_number = (config.build_number.toString().toInteger()) + 1
+	    numbersFile.withWriter {
+	        config.toProperties().store(it, "")
+	    }
+    }
 }
