@@ -1,14 +1,16 @@
 package lakmoore.sel.client.adaptors;
 
+import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.client.Config;
+import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
-import lakmoore.sel.client.SELSourceContainer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 /**
@@ -36,15 +38,18 @@ public class FloodLightAdaptor extends BaseAdaptor
 			partialLights = new PartialLightAdaptor[5];
 
 		Entity dummyEntity;
-		SELSourceContainer sources;
+		ILightSourceCapability sources;
         for (int i = 0; i < partialLights.length; i++)
         {
-        	dummyEntity = new DummyEntity(entity.worldObj);            
-    		sources = new SELSourceContainer(dummyEntity, entity.worldObj);
-    		dummyEntity.registerExtendedProperties(SEL.modId, sources);
-            partialLights[i] = new PartialLightAdaptor(dummyEntity);
-            sources.addLightSource(partialLights[i]);        		
-            thePlayer.worldObj.spawnEntityInWorld(dummyEntity);
+        	dummyEntity = new DummyEntity(entity.world);            
+    		sources = dummyEntity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);
+    		if (sources != null) {
+                partialLights[i] = new PartialLightAdaptor(dummyEntity);
+                sources.addLightSource(partialLights[i]);        		    			
+                thePlayer.world.spawnEntity(dummyEntity);
+    		} else {
+    			SEL.log.warn("Unable to find Light Source Capability on DummyEntity! Floodlight will not be working.");
+    		}
         }
 
 	}
@@ -55,7 +60,10 @@ public class FloodLightAdaptor extends BaseAdaptor
     {
         if (thePlayer != null && thePlayer.isEntityAlive() && !SEL.disabled)
         {
-            int lightLevel = Config.floodLights.getLightFromItemStack(thePlayer.getCurrentEquippedItem());
+            int lightLevel = 0;
+        	for (ItemStack item : thePlayer.getHeldEquipment()) {
+                lightLevel = LightUtils.maxLight(lightLevel, Config.floodLights.getLightFromItemStack(item));        		
+        	}
                         
             handleLight(partialLights[0], lightLevel, 0f, 0f);
             
@@ -81,18 +89,18 @@ public class FloodLightAdaptor extends BaseAdaptor
     	}
 
     	// Considers eye-height
-    	Vec3 origin = thePlayer.getPosition(1.0f);
+    	Vec3d origin = thePlayer.getPositionEyes(1.0f);
 
-        Vec3 look = getVector(thePlayer.rotationYaw + yawRot, thePlayer.rotationPitch + pitchRot);
+        Vec3d look = getVector(thePlayer.rotationYaw + yawRot, thePlayer.rotationPitch + pitchRot);
         
-        look = origin.addVector(look.xCoord * beamStrength, look.yCoord * beamStrength, look.zCoord * beamStrength);
-        MovingObjectPosition mop = thePlayer.worldObj.rayTraceBlocks(origin, look);
-        if (mop != null)
+        look = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
+        RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, look);
+        if (rtr != null)
         {
-            int dist = (int) Math.round(thePlayer.getDistance(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord));
+            int dist = (int) Math.round(thePlayer.getDistance(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z));
             dist = Math.max(0, dist - freeDistance);
             source.lightLevel = Math.max(0, light - dist);
-            source.entity.setPosition(mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord);
+            source.entity.setPosition(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z);
         }
         else
         {
@@ -101,13 +109,13 @@ public class FloodLightAdaptor extends BaseAdaptor
         }
     }
     
-    public static Vec3 getVector(float rotYaw, float rotPitch)
+    public static Vec3d getVector(float rotYaw, float rotPitch)
     {
         float f1 = MathHelper.cos(-rotYaw * 0.017453292F - (float)Math.PI);
         float f2 = MathHelper.sin(-rotYaw * 0.017453292F - (float)Math.PI);
         float f3 = -MathHelper.cos(-rotPitch * 0.017453292F);
         float f4 = MathHelper.sin(-rotPitch * 0.017453292F);
-        return Vec3.createVectorHelper((double)(f2 * f3), (double)f4, (double)(f1 * f3));
+        return new Vec3d((double)(f2 * f3), (double)f4, (double)(f1 * f3));
     }
     
 	@Override

@@ -1,9 +1,7 @@
 package lakmoore.sel.client;
 
-import cpw.mods.fml.client.FMLClientHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import lakmoore.sel.capabilities.DefaultLightSourceCapability;
+import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.client.adaptors.BrightAdaptor;
 import lakmoore.sel.client.adaptors.CreeperAdaptor;
 import lakmoore.sel.client.adaptors.EntityBurningAdaptor;
@@ -13,9 +11,8 @@ import lakmoore.sel.client.adaptors.MobLightAdaptor;
 import lakmoore.sel.client.adaptors.PlayerOtherAdaptor;
 import lakmoore.sel.client.adaptors.PlayerSelfAdaptor;
 import lakmoore.sel.world.WorldSEL;
-import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -23,17 +20,22 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class ForgeEventHandler 
 {    
@@ -41,24 +43,23 @@ public class ForgeEventHandler
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
-		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.x, event.y, event.z, 8));
+		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
 	}
 
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent
     public void onBlockPlace(BlockEvent.PlaceEvent event) {
-		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.x, event.y, event.z, 8));
+		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
 	}
 
     @SubscribeEvent
 	@SideOnly(Side.CLIENT)
     public void onChunkLoad(ChunkEvent.Load event)
     {
-    	if (event.world instanceof WorldSEL && SEL.enabledForDimension(ClientProxy.mcinstance.thePlayer.dimension)) {
-    		Chunk chunk = event.getChunk();
-    		ChunkCoordIntPair coords = new ChunkCoordIntPair(chunk.xPosition, chunk.zPosition);
-    		if (!LightUtils.lightCache.containsKey(coords)) {
-    			LightUtils.lightCache.put(coords, new LightCache());					
+    	if (event.getWorld() instanceof WorldSEL && SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)) {
+    		ChunkPos chunkPos = event.getChunk().getPos();
+    		if (!LightUtils.lightCache.containsKey(chunkPos)) {
+    			LightUtils.lightCache.put(chunkPos, new LightCache());					
     		}
     	}
     }
@@ -67,9 +68,8 @@ public class ForgeEventHandler
 	@SideOnly(Side.CLIENT)
     public void onChunkUnload(ChunkEvent.Unload event)
     {
-    	if(event.world instanceof WorldSEL) {
-    		Chunk chunk = event.getChunk();
-    		LightUtils.lightCache.remove(new ChunkCoordIntPair(chunk.xPosition, chunk.zPosition));		
+    	if(event.getWorld() instanceof WorldSEL) {
+    		LightUtils.lightCache.remove(event.getChunk().getPos());		
     	}
     }
 
@@ -79,42 +79,40 @@ public class ForgeEventHandler
         if(Minecraft.getMinecraft().gameSettings.showDebugInfo)
         {
     		//There used to be some interesting stats to look at!
-    		event.left.add("DL " + (SEL.disabled ? "OFF" : "ON"));
+    		event.getLeft().add("DL " + (SEL.disabled ? "OFF" : "ON"));
     		// Light levels
-    		Entity player = Minecraft.getMinecraft().thePlayer;
-    		World world = Minecraft.getMinecraft().theWorld;
-    		int x = (int)player.posX;
-			int y = (int)player.posY;
-			int z = (int)player.posZ;
-    		Block block = world.getBlock(x, y, z);
-    		ChunkCoordIntPair coords = new ChunkCoordIntPair(x >> 4, z >> 4);
-    		event.left.add(
-    			"Vanilla BL: " + block.getLightValue(world, x, y, z) 
+    		Entity player = Minecraft.getMinecraft().player;
+    		World world = Minecraft.getMinecraft().world;
+    		BlockPos pos = player.getPosition();
+    		IBlockState state = world.getBlockState(pos);
+    		ChunkPos coords = new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4);
+    		event.getLeft().add(
+    			"Vanilla BL: " + state.getLightValue(world, pos) 
     			+ " SEL: " 
     			+ (
     				LightUtils.lightCache != null 
     				&& LightUtils.lightCache.get(coords) != null 
     				?	
-    					Math.round(10f * LightUtils.getEntityLightLevel(world, x, y, z)) / 10f
-    					+ " Cached: " + Math.round(10f * LightUtils.lightCache.get(coords).lights[x & 15][y][z & 15]) / 10f
+    					Math.round(10f * LightUtils.getEntityLightLevel(world, pos)) / 10f
+    					+ " Cached: " + Math.round(10f * LightUtils.lightCache.get(coords).lights[pos.getX() & 15][Math.max(0, pos.getY())][pos.getZ() & 15]) / 10f
 	    			:
 	    				"Disabled for this dimension"
 	    		)
     		);
-    		event.left.add(
+    		event.getLeft().add(
     			"SEL avg blocks re-lit: " + Math.round(10f * FMLEventHandler.totalBlockCount() / FMLEventHandler.counts.size()) / 10f
     		);
         }
     } 
     
     @SubscribeEvent
-    public void onJoinWorld(EntityJoinWorldEvent event)
+    public void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event)
     {
-        Entity entity = event.entity;
+        Entity entity = event.getObject();
         if(entity == null || !entity.isEntityAlive())
             return;
 
-        World world = entity.worldObj;
+        World world = entity.getEntityWorld();
         if(world == null || !world.isRemote)
             return;
 
@@ -123,11 +121,8 @@ public class ForgeEventHandler
         	return;
         }
         
-        SELSourceContainer sources = (SELSourceContainer)entity.getExtendedProperties(SEL.modId);
-        if(sources == null) {
-    		sources = new SELSourceContainer(entity, world);
-    		entity.registerExtendedProperties(SEL.modId, sources);
-        }
+        DefaultLightSourceCapability sources = new DefaultLightSourceCapability();
+        sources.init(entity, world);
 
         if (entity instanceof EntityItem)
         {
@@ -215,7 +210,7 @@ public class ForgeEventHandler
             PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP)entity);
             sources.addLightSource(adaptor);
         }
-        else if (entity instanceof EntityClientPlayerMP)
+        else if (entity instanceof EntityPlayerMP)
         {
             if (Config.lightFloodLight)
             {
@@ -235,26 +230,30 @@ public class ForgeEventHandler
         {
             //Do nothing
         }
+        
+        if (sources.hasSources()) {
+            event.addCapability(SEL.LIGHT_SOURCE_CAPABILITY_NAME, sources);
+        }
 
     }
-    
+
+    // TODO: Check that we really need this event!?  Creeper Adaptor checks creeper status for light level!?
     @SubscribeEvent
     public void onPlaySoundAtEntity(PlaySoundAtEntityEvent event)
     {
         if (
         	!SEL.disabled 
         	&& Config.lightChargingCreepers 
-        	&& event.name != null 
-        	&& event.name.equals("creeper.primed") 
-        	&& event.entity != null 
-        	&& event.entity instanceof EntityCreeper
-        	&& event.entity.isEntityAlive()
-        	&& SEL.enabledForDimension(event.entity.dimension)
+        	&& event.getSound() != null 
+        	&& event.getSound().getRegistryName().getPath().equals("entity.creeper.primed") 
+        	&& event.getEntity() != null 
+        	&& event.getEntity().isEntityAlive()
+        	&& SEL.enabledForDimension(event.getEntity().dimension)
         ) {
-            SELSourceContainer sources = (SELSourceContainer)event.entity.getExtendedProperties(SEL.modId);                		
+        	ILightSourceCapability sources = event.getEntity().getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
             if (sources == null)
         		return;
-            CreeperAdaptor creeper = new CreeperAdaptor((EntityCreeper) event.entity);
+            CreeperAdaptor creeper = new CreeperAdaptor((EntityCreeper) event.getEntity());
             sources.addLightSource(creeper);
         }
     }
@@ -263,7 +262,7 @@ public class ForgeEventHandler
     {
         if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
         {
-            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
+            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
             SEL.disabled = true;
         }
     }

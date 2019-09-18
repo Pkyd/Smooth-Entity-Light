@@ -5,15 +5,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import lakmoore.sel.world.BlockPos;
+import lakmoore.sel.capabilities.ILightSourceCapability;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class FMLEventHandler {
 	
@@ -23,7 +24,7 @@ public class FMLEventHandler {
 	public static int tickCount = 0;
 	
 	public static HashSet<BlockPos> blocksToUpdate = new HashSet<BlockPos>();
-	public static HashSet<ChunkCoordIntPair> chunksToUpdate = new HashSet<ChunkCoordIntPair>();
+	public static HashSet<ChunkPos> chunksToUpdate = new HashSet<ChunkPos>();
 
 	public static int totalBlockCount() {
 		int count = 0;
@@ -40,14 +41,14 @@ public class FMLEventHandler {
 //		OFDL.mcProfiler.startSection(OFDL.modId + ":tick");
         if (
         	tick.phase == Phase.END 
-        	&& ClientProxy.mcinstance.theWorld != null
-        	&& SEL.enabledForDimension(ClientProxy.mcinstance.thePlayer.dimension)
+        	&& ClientProxy.mcinstance.world != null
+        	&& SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)
         ) {
         	
     		//Check for global lights key press
             if (
             	ClientProxy.mcinstance.currentScreen == null 
-            	&& ClientProxy.toggleButton.getIsKeyPressed()
+            	&& ClientProxy.toggleButton.isPressed()
                 && System.currentTimeMillis() >= ClientProxy.nextKeyTriggerTime
                 && !forceUpdate
             ) {
@@ -56,7 +57,7 @@ public class FMLEventHandler {
                 //toggle the setting
                 SEL.disabled = !SEL.disabled;
                 //player notification
-                ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText(
+                ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
                         "Smooth Entity Lights " + (SEL.disabled ? "off" : "on")));
                 forceUpdate = true;
                 
@@ -66,13 +67,12 @@ public class FMLEventHandler {
             if (forceUpdate || !SEL.disabled) {
 
                 // Tick all entities
-                @SuppressWarnings("unchecked")
-				List<Entity> allEntities = ClientProxy.mcinstance.theWorld.loadedEntityList;
+				List<Entity> allEntities = ClientProxy.mcinstance.world.loadedEntityList;
                 
             	allEntities.parallelStream().forEach(new Consumer<Entity>() {
 					@Override
 					public void accept(Entity entity) {
-					    SELSourceContainer sources = (SELSourceContainer)entity.getExtendedProperties(SEL.modId);                		
+			            ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
 					    if (sources != null) {
 					    	// getBlocksToUpdate ticks the source container and returns a list of dirty blocks
 					    	for (BlockPos pos : sources.getBlocksToUpdate()) {
@@ -89,29 +89,34 @@ public class FMLEventHandler {
                 	counts.remove();
                 }
                 
-                chunksToUpdate = new HashSet<ChunkCoordIntPair>();
+                chunksToUpdate = new HashSet<ChunkPos>();
 
                 // update all blocks that have been marked dirty since last tick
                 blocksToUpdate.parallelStream().forEach(new Consumer<BlockPos>() {
 					@Override
 					public void accept(BlockPos pos) {
-						ChunkCoordIntPair chunkCoords = new ChunkCoordIntPair(pos.getX() >> 4, pos.getZ() >> 4);
+						ChunkPos chunkCoords = new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4);
 						chunksToUpdate.add(chunkCoords);
 						LightCache lc = LightUtils.lightCache.get(chunkCoords);
 						if (lc != null) {
 							int y = pos.getY();
 							if (y < 0) y = 0;
-					        lc.lights[pos.getX() & 15][y][pos.getZ() & 15] = LightUtils.getEntityLightLevel(ClientProxy.mcinstance.theWorld, pos.getX(), y, pos.getZ());
+					        lc.lights[pos.getX() & 15][y][pos.getZ() & 15] = LightUtils.getEntityLightLevel(ClientProxy.mcinstance.world, pos);
 						}                	
 					}
 				});
                 blocksToUpdate.clear();
                                  
                 // mark for update the chunks that contain dirty blocks
-                chunksToUpdate.parallelStream().forEach(new Consumer<ChunkCoordIntPair>() {
+                chunksToUpdate.parallelStream().forEach(new Consumer<ChunkPos>() {
 					@Override
-					public void accept(ChunkCoordIntPair chunkCoords) {
-	    				ClientProxy.mcinstance.renderGlobal.markBlockForUpdate(chunkCoords.chunkXPos << 4, 0, chunkCoords.chunkZPos << 4);                							
+					public void accept(ChunkPos chunkPos) {
+						int x = chunkPos.x << 4;
+						int z = chunkPos.z << 4;
+						x++;
+						z++;
+						// Marks surrounding blocks too!
+	    				ClientProxy.mcinstance.renderGlobal.markBlockRangeForRenderUpdate(x, 1, z, x, 1, z);                							
 					}
 				});
                 chunksToUpdate.clear();

@@ -34,15 +34,15 @@ public class MobLightAdaptor extends BaseAdaptor
 			{
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_gold.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.golden_horse_armor)); // horsearmorgold
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.GOLDEN_HORSE_ARMOR)); // horsearmorgold
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_iron.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.iron_horse_armor)); // horsearmormetal
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.IRON_HORSE_ARMOR)); // horsearmormetal
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_diamond.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.diamond_horse_armor)); // butt stallion
+					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.DIAMOND_HORSE_ARMOR)); // butt stallion
 				}
 			}
 		}
@@ -52,10 +52,10 @@ public class MobLightAdaptor extends BaseAdaptor
 
 	private int getMobEquipMaxLight(EntityLivingBase ent)
 	{
-		int light = Config.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(0));
-		for (int i = 1; i < 4; i++)
+		int light = 0;
+		for (ItemStack item : ent.getEquipmentAndArmor())
 		{
-			light = LightUtils.maxLight(light, Config.itemsMap.getLightFromItemStack(ent.getEquipmentInSlot(i)));
+			light = LightUtils.maxLight(light, Config.itemsMap.getLightFromItemStack(item));
 		}
 		return light;
 	}

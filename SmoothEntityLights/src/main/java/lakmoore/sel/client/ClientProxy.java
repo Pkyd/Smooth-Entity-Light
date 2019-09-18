@@ -4,15 +4,18 @@ import java.util.HashMap;
 
 import org.lwjgl.input.Keyboard;
 
-import cpw.mods.fml.client.FMLClientHandler;
-import cpw.mods.fml.client.registry.ClientRegistry;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.Loader;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import lakmoore.sel.capabilities.DefaultLightSourceCapability;
+import lakmoore.sel.capabilities.ILightSourceCapability;
+import lakmoore.sel.capabilities.Storage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 public class ClientProxy extends CommonProxy {
     static Minecraft mcinstance;
@@ -32,7 +35,9 @@ public class ClientProxy extends CommonProxy {
         SEL.glowValueMap = new HashMap<Class<? extends Entity>, Integer>();
 
         MinecraftForge.EVENT_BUS.register(new ForgeEventHandler());
-        FMLCommonHandler.instance().bus().register(new FMLEventHandler());
+        MinecraftForge.EVENT_BUS.register(new FMLEventHandler());
+//        FMLCommonHandler.instance().bus().register(new FMLEventHandler());
+        CapabilityManager.INSTANCE.register(ILightSourceCapability.class, new Storage(), DefaultLightSourceCapability::new);
 
         ClientProxy.nextKeyTriggerTime = System.currentTimeMillis();
         SEL.lastLightUpdateTime = System.currentTimeMillis();

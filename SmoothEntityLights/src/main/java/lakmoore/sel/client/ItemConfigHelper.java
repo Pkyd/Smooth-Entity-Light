@@ -7,8 +7,9 @@ import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import coloredlightscore.src.api.CLBlock;
-import cpw.mods.fml.common.registry.GameData;
 
 public class ItemConfigHelper
 {
@@ -58,12 +59,12 @@ public class ItemConfigHelper
     {
         if (stack != null)
         {
-            String name = GameData.getItemRegistry().getNameForObject(stack.getItem());  
+            ResourceLocation name = stack.getItem().getRegistryName();  
             if (name != null)
             {
-            		ItemData item;
-            		Iterator<ItemData> items = dataMap.keySet().iterator();
-            		while (items.hasNext())
+        		ItemData item;
+        		Iterator<ItemData> items = dataMap.keySet().iterator();
+        		while (items.hasNext())
                 {
             			item = items.next();
             			if (item.matches(name, stack.getMetadata()))
@@ -83,13 +84,13 @@ public class ItemConfigHelper
     {
         if (stack != null)
         {
-            int r = retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getMetadata());
+            int r = retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata());
             return r < 0 ? 0 : r;
         }
         return 0;
     }
     
-    public int retrieveValue(String name, int meta)
+    public int retrieveValue(ResourceLocation name, int meta)
     {
         if (name != null)
         {
@@ -100,12 +101,12 @@ public class ItemConfigHelper
                     int val = dataMap.get(item);
                     if (val == WILDCARD)
                     {
-                        Block b = GameData.getBlockRegistry().getObject(name);
+                        Block b = GameRegistry.findRegistry(Block.class).getValue(name);
                         if (b instanceof CLBlock)
                         {
                             return ((CLBlock)b).getColorLightValue(meta);
                         }
-                        return b != null ? b.getLightValue() : 0;
+                        return b != null ? b.getDefaultState().getLightValue() : 0;
                     }
                     return val;
                 }
@@ -128,13 +129,10 @@ public class ItemConfigHelper
         int len = strings.length;
         int sm = len > 1 ? catchWildcard(strings[len > 3 ? 2 : 1]) : WILDCARD;
         int em = len > 2 ? catchWildcard(strings[len > 3 ? 3 : 2]) : sm;
+                
+        ResourceLocation name = new ResourceLocation(strings[0]);
         
-        if (!strings[0].contains(":"))
-        {
-            strings[0] = "minecraft:"+strings[0];
-        }
-        
-        return new ItemData(strings[0], sm, em);
+        return new ItemData(name, sm, em);
     }
     
     private int catchWildcard(String s)
@@ -148,11 +146,11 @@ public class ItemConfigHelper
     
     private class ItemData
     {
-        private String nameOf;
+        private ResourceLocation nameOf;
         final int startMeta;
         final int endMeta;
         
-        public ItemData(String name, int startmetarange, int endmetarange)
+        public ItemData(ResourceLocation name, int startmetarange, int endmetarange)
         {
             nameOf = name;
             startMeta = startmetarange;
@@ -167,7 +165,7 @@ public class ItemConfigHelper
                     + (endMeta < 1 ? "" : "-" + endMeta);
         }
         
-        public boolean matches(String name, int meta)
+        public boolean matches(ResourceLocation name, int meta)
         {
             return name.equals(nameOf) && isContained(startMeta, endMeta, meta);
         }

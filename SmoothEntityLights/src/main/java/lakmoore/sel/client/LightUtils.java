@@ -4,24 +4,35 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import lakmoore.sel.world.BlockPos;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Predicate;
+
+import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.world.DirtyRayTrace;
-import net.minecraft.block.Block;
-import net.minecraft.command.IEntitySelector;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.Vec3;
-import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class LightUtils {
+	
+	private static final Predicate<Entity> HAS_ENTITY_LIGHT = new Predicate<Entity>()
+	{
+	    public boolean apply(@Nullable Entity entity)
+	    {
+	        return entity != null && entity.hasCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);
+	    }
+	};
 		
 	@SideOnly(Side.CLIENT)
-	public static HashMap<ChunkCoordIntPair, LightCache> lightCache = new HashMap<ChunkCoordIntPair, LightCache>();
+	public static HashMap<ChunkPos, LightCache> lightCache = new HashMap<ChunkPos, LightCache>();
 	
     public static int getCombinedLight(float smoothBlockLight0to15, int combinedLight) {
         if (smoothBlockLight0to15 > 0.0f) {
@@ -55,7 +66,7 @@ public class LightUtils {
      *  Method that searches for nearby dynamic light sources and calculates the 
      *  smooth light value at the given location being generated from them
      */
-	public static float getEntityLightLevel(IBlockAccess world, int x, int y, int z) {
+	public static float getEntityLightLevel(IBlockAccess world, BlockPos pos) {
 		float maxLight = 0.0f;
 
         if (SEL.disabled || world == null || world instanceof WorldServer) {
@@ -65,29 +76,23 @@ public class LightUtils {
         if (world instanceof World) {
 //        	SEL.mcProfiler.startSection(SEL.modId + ":getEntityLightLevel");
         	
-        	int opacity = ((World) world).getBlock(x, y, z).getLightOpacity();
+        	int opacity = ((World) world).getBlockLightOpacity(pos);
 
         	// If this block is fully opaque it cannot have a light value!
-        	if(opacity > 14) {
+        	if (opacity > 14) {
         		return 0f;
         	}
         	
         	DirtyRayTrace rayTrace = new DirtyRayTrace(world);
-        	Vec3 target = Vec3.createVectorHelper(x + 0.5f, y + 0.5f, z + 0.5f);        	
+        	Vec3d target = new Vec3d(pos); 
+        	target = target.add(0.5, 0.5, 0.5);
         
-            AxisAlignedBB bb = AxisAlignedBB.getBoundingBox(
-        		x - SEL.maxSearchDist, 
-        		y - SEL.maxSearchDist, 
-        		z - SEL.maxSearchDist, 
-        		x + SEL.maxSearchDist, 
-        		y + SEL.maxSearchDist, 
-        		z + SEL.maxSearchDist
-        	);
+            AxisAlignedBB aabb = new AxisAlignedBB(pos);
+            aabb.grow(SEL.maxSearchDist, SEL.maxSearchDist, SEL.maxSearchDist);
             
-            @SuppressWarnings("unchecked")
-			List<Entity> entities = ((World) world).selectEntitiesWithinAABB(Entity.class, bb, selectEntityLights);
+			List<Entity> entities = ((World) world).getEntitiesWithinAABB(Entity.class, aabb, HAS_ENTITY_LIGHT);
             for (Entity entity : entities) {
-                SELSourceContainer sources = (SELSourceContainer)entity.getExtendedProperties(SEL.modId);                		
+            	ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
                 if (sources == null) continue;
 
                 float lightValue = sources.getLastLightLevel();                
@@ -97,10 +102,7 @@ public class LightUtils {
                 lightValue = Math.max(Math.min(lightValue - opacity, 15.0f), 0.0f);
                 if (lightValue <= 0) continue;
                                 
-                float dx = (float)x + 0.5f - (float)entity.posX;
-                float dy = (float)y + 0.5f - (float)entity.posY + entity.getEyeHeight();
-                float dz = (float)z + 0.5f - (float)entity.posZ;
-                float distSq = dx * dx + dy * dy + dz * dz;
+                double distSq = target.squareDistanceTo(entity.getPositionEyes(1f));
                                 
                 // light travels less far under water
                 if (sources.isUnderwater()) { // && !Config.isClearWater()) {
@@ -114,19 +116,9 @@ public class LightUtils {
                 
                 if (lightValue <= maxLight) continue;
                 
-                // if the source of light is not in this block
-//                if (x != (int)entity.posX || y != (int)(entity.posY + entity.getEyeHeight()) || z != (int)entity.posZ) {
-                	
-                    // stop light from travelling through (or around) opaque blocks
-                	ArrayList<Block> blocksHit = rayTrace.rayTraceAllBlocks(Vec3.createVectorHelper(entity.posX, entity.posY + entity.getEyeHeight(), entity.posZ), target);
-
-                	for (Block block : blocksHit) {
-                		lightValue -= block.getLightOpacity();
-                		lightValue = Math.max(0f, Math.min(15f, lightValue));
-                        // As soon as we are no longer the brightest light, move on
-                        if (lightValue <= maxLight) break;
-                	}                	                    
-//                }
+                // stop light from travelling through (or around) opaque blocks
+            	lightValue -= rayTrace.rayTraceForOpacity(new Vec3d(entity.posX, entity.posY + entity.getEyeHeight(), entity.posZ), target);
+        		lightValue = Math.max(0f, Math.min(15f, lightValue));                	
                 
                 // If this source is not the brightest we have seen, test the next
                 if (lightValue <= maxLight) continue;
@@ -142,18 +134,7 @@ public class LightUtils {
         }
         return maxLight;
     }
-	
-    public static IEntitySelector selectEntityLights = new IEntitySelector()
-    {
-        /**
-         * Return whether the specified entity is applicable to this filter.
-         */
-        public boolean isEntityApplicable(Entity entity)
-        {
-            return entity.getExtendedProperties(SEL.modId) != null;
-        }
-    };
-    
+	    
     public static ArrayList<BlockPos> getVolumeForRelight(int x, int y, int z, int radius) {
     	ArrayList<BlockPos> result = new ArrayList<BlockPos>();
         int minX = x - radius;

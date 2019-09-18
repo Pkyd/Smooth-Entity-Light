@@ -1,6 +1,6 @@
 package lakmoore.sel.client;
 
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 public class CommonProxy 
 {

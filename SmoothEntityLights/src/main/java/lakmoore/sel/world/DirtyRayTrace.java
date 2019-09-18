@@ -3,188 +3,183 @@ package lakmoore.sel.world;
 import java.util.ArrayList;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 
 public class DirtyRayTrace {
 
 	private IBlockAccess world;
 
-	private final double sample_size = 16.0;
-	private double lastDistSq;
-
 	public DirtyRayTrace(IBlockAccess world) {
 		this.world = world;
-		lastDistSq = 2.0 / sample_size;
-		lastDistSq *= lastDistSq;
-	}
-
-	public ArrayList<Block> getBlocksAlongRay(Vec3 start, Vec3 end) {
-		ArrayList<Block> result = new ArrayList<Block>();
-
-		// Would be nice to get rid of the square root in the following call
-		Vec3 direction = start.subtract(end).normalize();
-		direction = Vec3.createVectorHelper(direction.xCoord / sample_size, direction.yCoord / sample_size,
-				direction.zCoord / sample_size);
-
-		int thisX = 0;
-		int thisY = 0;
-		int thisZ = 0;
-		int lastX = 0;
-		int lastY = 0;
-		int lastZ = 0;
-		Vec3 currentPos = Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord);
-
-		// Until we are within 2 sample sizes of the end position
-		while (end.squareDistanceTo(currentPos) > lastDistSq) {
-			// creep forward along the vector
-			currentPos = currentPos.addVector(direction.xCoord, direction.yCoord, direction.zCoord);
-			thisX = MathHelper.floor_double(currentPos.xCoord);
-			thisY = MathHelper.floor_double(currentPos.yCoord);
-			thisZ = MathHelper.floor_double(currentPos.zCoord);
-
-			// if we are inside a new Block Position
-			if (thisX != lastX || thisY != lastY || thisZ != lastZ) {
-				// Add the block to the list
-				Block thisBlock = world.getBlock(thisX, thisY, thisZ);
-				if (thisBlock != null) {
-					result.add(thisBlock);
-				}
-
-				// Update
-				lastX = thisX;
-				lastY = thisY;
-				lastZ = thisZ;
-			}
-
-		}
-
-		return result;
 	}
 
 	/*
 	 * Return a list of all non-air blocks between the start and end
 	 * Do NOT return the block at "start"
 	 */
-	public ArrayList<Block> rayTraceAllBlocks(Vec3 start, Vec3 end) {
+	public ArrayList<Block> rayTraceAllBlocks(Vec3d start, Vec3d end) {
 
 		ArrayList<Block> result = new ArrayList<Block>();
 
-		if (!Double.isNaN(start.xCoord) && !Double.isNaN(start.yCoord) && !Double.isNaN(start.zCoord)) {
-			if (!Double.isNaN(end.xCoord) && !Double.isNaN(end.yCoord) && !Double.isNaN(end.zCoord)) {
-				int endX = MathHelper.floor_double(end.xCoord);
-				int endY = MathHelper.floor_double(end.yCoord);
-				int endZ = MathHelper.floor_double(end.zCoord);
-
-				Vec3 currentPos = Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord);
-				int thisX = MathHelper.floor_double(currentPos.xCoord);
-				int thisY = MathHelper.floor_double(currentPos.yCoord);
-				int thisZ = MathHelper.floor_double(currentPos.zCoord);
+		if (!Double.isNaN(start.x) && !Double.isNaN(start.y) && !Double.isNaN(start.z)) {
+			if (!Double.isNaN(end.x) && !Double.isNaN(end.y) && !Double.isNaN(end.z)) {
 				
-				while (!(thisX == endX && thisY == endY && thisZ == endZ)) {
-					MovingObjectPosition mop = blockRayTrace(thisX, thisY, thisZ, currentPos, end);
+				BlockPos endBlock = new BlockPos(end);
+				BlockPos thisBlock = new BlockPos(start);				
+				Vec3d currentPos = new Vec3d(start.x, start.y, start.z);
+				
+				while (!thisBlock.equals(endBlock)) {
+					RayTraceResult rtr = blockRayTrace(thisBlock, currentPos, end);
 
-					if (mop == null) {
+					if (rtr == null) {
 						break;
 					}
 
-					currentPos = mop.hitVec;
-					thisX = mop.blockX;
-					thisY = mop.blockY;
-					thisZ = mop.blockZ;
-
+					currentPos = rtr.hitVec;
+					thisBlock = rtr.getBlockPos();
+					
 					// Get the block we hit
-					Block block = world.getBlock(thisX, thisY, thisZ);
-					if (block != null && block != Blocks.air) {
-						result.add(block);
+					IBlockState state = world.getBlockState(thisBlock);
+					if (state != null) {
+						Block block = state.getBlock();
+						if (block != null && block != Blocks.AIR) {
+							result.add(block);
+						}						
 					}
 				}
 			}
 		}
 		return result;
 	}
+
+	/*
+	 * Return the total opacity of the blocks along the ray
+	 * Do NOT consider the block at "start"
+	 */
+	public int rayTraceForOpacity(Vec3d start, Vec3d end) {
+
+		int result = 0;
+
+		if (!Double.isNaN(start.x) && !Double.isNaN(start.y) && !Double.isNaN(start.z)) {
+			if (!Double.isNaN(end.x) && !Double.isNaN(end.y) && !Double.isNaN(end.z)) {
+				
+				BlockPos endBlock = new BlockPos(end);
+				BlockPos thisBlock = new BlockPos(start);				
+				Vec3d currentPos = new Vec3d(start.x, start.y, start.z);
+				
+				while (!thisBlock.equals(endBlock) && result < 15) {
+					RayTraceResult rtr = blockRayTrace(thisBlock, currentPos, end);
+
+					if (rtr == null) {
+						break;
+					}
+
+					currentPos = rtr.hitVec;
+					thisBlock = rtr.getBlockPos();
+					
+					// Get the block we hit
+					IBlockState state = world.getBlockState(thisBlock);
+					if (state != null) {
+						Block block = state.getBlock();
+						if (block != null && block != Blocks.AIR) {
+							result += state.getLightOpacity(world, thisBlock);
+						}						
+					}
+				}
+			}
+		}
+		return Math.min(15, result);
+	}
 	
-	private MovingObjectPosition blockRayTrace(int x, int y, int z, Vec3 startVec, Vec3 endVec) {
+	/*
+	 * A RayTrace routine that I can understand.
+	 * Resultant side-hit is not calculated
+	 */
+	private RayTraceResult blockRayTrace(BlockPos pos, Vec3d startVec, Vec3d endVec) {
 
 		// re-base the vectors to 0,0,0
-		double dX = (double)x;
-		double dY = (double)y;
-		double dZ = (double)z;
-		startVec = startVec.addVector(-dX, -dY, -dZ);
-        endVec = endVec.addVector(-dX, -dY, -dZ);
-        Vec3 hitPoint = null;
+		double dX = (double)pos.getX();
+		double dY = (double)pos.getY();
+		double dZ = (double)pos.getZ();
+		startVec = startVec.add(-dX, -dY, -dZ);
+        endVec = endVec.add(-dX, -dY, -dZ);
+
+        Vec3d hitPoint = null;
 
         // Does the vector cross x == 0?
-        if (startVec.xCoord > 0.0) {
+        if (startVec.x > 0.0) {
             hitPoint = startVec.getIntermediateWithXValue(endVec, 0.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.yCoord) && inBounds(hitPoint.zCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                    return new MovingObjectPosition(x - 1, y, z, 0, hitPoint, true);                	
+                if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(-1, 0, 0));                	
                 }
             }        	
         }
         
-        if (startVec.xCoord < 1.0) {
+        if (startVec.x < 1.0) {
             // Does the vector cross x == 1?
             hitPoint = startVec.getIntermediateWithXValue(endVec, 1.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.yCoord) && inBounds(hitPoint.zCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                	return new MovingObjectPosition(x + 1, y, z, 0, hitPoint, true);
+                if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(1, 0, 0));                	
                 }
             }        	
         }
 
-        if (startVec.yCoord > 0.0) {
+        if (startVec.y > 0.0) {
             // Does the vector cross y == 0?
             hitPoint = startVec.getIntermediateWithYValue(endVec, 0.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.xCoord) && inBounds(hitPoint.zCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                	return new MovingObjectPosition(x, y - 1, z, 0, hitPoint, true);
+                if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, -1, 0));                	
                 }
             }        	
         }
         
-        if (startVec.yCoord < 1.0) {
+        if (startVec.y < 1.0) {
             // Does the vector cross y == 1?
             hitPoint = startVec.getIntermediateWithYValue(endVec, 1.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.xCoord) && inBounds(hitPoint.zCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                	return new MovingObjectPosition(x, y + 1, z, 0, hitPoint, true);
+                if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 1, 0));                	
                 }
             }        	
         }
 
-        if (startVec.zCoord > 0.0) {
+        if (startVec.z > 0.0) {
             // Does the vector cross z == 0?
             hitPoint = startVec.getIntermediateWithZValue(endVec, 0.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.xCoord) && inBounds(hitPoint.yCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                	return new MovingObjectPosition(x, y, z - 1, 0, hitPoint, true);
+                if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 0, -1));                	
                 }
             }        	
         }
         
-        if (startVec.zCoord < 1.0) {
+        if (startVec.z < 1.0) {
             // Does the vector cross z == 1?
             hitPoint = startVec.getIntermediateWithZValue(endVec, 1.0);
             if (hitPoint != null) {
             	// within the same block?
-                if (inBounds(hitPoint.xCoord) && inBounds(hitPoint.yCoord)) {
-                	hitPoint = hitPoint.addVector(dX, dY, dZ);
-                	return new MovingObjectPosition(x, y, z + 1, 0, hitPoint, true);
+                if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
+                	hitPoint = hitPoint.add(dX, dY, dZ);
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 0, 1));                	
                 }
             }        	
         }

@@ -22,12 +22,11 @@ public class PlayerOtherAdaptor extends BaseAdaptor
                 return 15;
             }
             else
-            {                
-                int lightLevel = Config.itemsMap.getLightFromItemStack(player.getCurrentEquippedItem());
-                for (ItemStack armor : player.inventory.armorInventory)
-                {
-                    lightLevel = LightUtils.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
-                }            	
+            {           
+                int lightLevel = 0;
+            	for (ItemStack item : player.getEquipmentAndArmor()) {
+                    lightLevel = LightUtils.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(item));        		
+            	}
                 return lightLevel;
             }            
         }

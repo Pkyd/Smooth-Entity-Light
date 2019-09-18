@@ -1,6 +1,5 @@
 package lakmoore.sel.client.adaptors;
 
-import cpw.mods.fml.common.registry.GameData;
 import lakmoore.sel.client.Config;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.item.EntityItem;
@@ -15,6 +14,13 @@ public class EntityItemAdaptor extends BaseAdaptor
 	public EntityItemAdaptor(EntityItem eI)
 	{
 		super(eI);
+		if (eI != null) {
+			stack = eI.getItem();
+			if (stack != null) {
+				notWaterProof = Config.notWaterProofItems.retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata()) == 1;
+				stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
+			}
+		}
 	}
 
 	public int getLightLevel()
@@ -26,27 +32,18 @@ public class EntityItemAdaptor extends BaseAdaptor
 		{
 			return 15;
 		}
-		else
+		else if (stack != null)
 		{                
-			if (stack == null) {
-				stack = entity.getDataWatcher().getWatchableObjectItemStack(10);
-			}
-			if (stack != null)
-			{
-				notWaterProof = Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(stack.getItem()), stack.getMetadata()) == 1;
-				stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
-			}            		
-
-			if (stack == null)
+			if (
+				notWaterProof 
+				&& entity.world.getBlockState(entity.getPosition()).getMaterial() == Material.WATER
+			)
 				return 0;
 			else
-			{
-				if (notWaterProof &&
-						entity.worldObj.getBlock((int)entity.posX, (int)entity.posY, (int)entity.posZ).getMaterial() == Material.water)
-					return 0;
-				else
-					return stackLightlevel;                	
-			}
+				return stackLightlevel;                	
+		}
+		else {
+			return 0;
 		}
 	}
 	

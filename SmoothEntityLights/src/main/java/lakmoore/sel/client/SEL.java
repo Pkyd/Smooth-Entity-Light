@@ -4,15 +4,19 @@ import java.util.HashMap;
 
 import org.apache.logging.log4j.Logger;
 
+import lakmoore.sel.capabilities.ILightSourceCapability;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.profiler.Profiler;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.SidedProxy;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.SidedProxy;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 /**
  * 
@@ -55,6 +59,10 @@ public class SEL {
 
     public static Logger log;
     public static Profiler mcProfiler;
+    
+    @CapabilityInject(ILightSourceCapability.class)
+    public static Capability<ILightSourceCapability> LIGHT_SOURCE_CAPABILITY = null;
+    public static ResourceLocation LIGHT_SOURCE_CAPABILITY_NAME = new ResourceLocation(SEL.modId, "SELSourceCap");
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent evt) {
@@ -65,7 +73,7 @@ public class SEL {
     @EventHandler
     public void init(FMLInitializationEvent evt) {
         proxy.init();
-        mcProfiler = Minecraft.getMinecraft().mcProfiler;
+        mcProfiler = Minecraft.getMinecraft().profiler;
     }
     
     @EventHandler
@@ -74,7 +82,7 @@ public class SEL {
     }
 
 	public static void onEntityRemoved(Entity entity) {
-        SELSourceContainer sources = (SELSourceContainer)entity.getExtendedProperties(SEL.modId);                		
+		ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
         if (sources != null)
     		sources.destroy();
 	}

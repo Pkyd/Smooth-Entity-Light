@@ -4,14 +4,17 @@ import net.minecraft.entity.monster.EntityCreeper;
 
 public class CreeperAdaptor extends BaseAdaptor
 {
-	public CreeperAdaptor(EntityCreeper eC)
+	protected EntityCreeper creeper;
+
+	public CreeperAdaptor(EntityCreeper creeper)
 	{
-		super(eC);
+		super(creeper);
+		this.creeper = creeper;
 	}
 
 	@Override
 	public int getLightLevel()
 	{
-		return ((EntityCreeper)entity).getCreeperState() == 1 ? 15 : 0;
+		return this.creeper.getCreeperState() == 1 ? 15 : 0;
 	}
 }

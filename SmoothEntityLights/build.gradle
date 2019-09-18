@@ -13,7 +13,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT"
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
     }
 }
 
@@ -21,7 +21,7 @@ plugins {
 	id "com.matthewprenger.cursegradle" version "1.4.0"
 }
 
-apply plugin: "forge"
+apply plugin: 'net.minecraftforge.gradle.forge'
 
 // Define properties file
 ext.configFile = file "build.properties"
@@ -36,8 +36,10 @@ version = "${config.mod_version}.${config.build_number}-MC${config.mc_version}"
 group = config.group
 archivesBaseName = config.archivesBaseName
 
-sourceCompatibility = config.java_version
-targetCompatibility = config.java_version
+sourceCompatibility = targetCompatibility = config.java_version // Need this here so eclipse task generates correctly.
+compileJava {
+    sourceCompatibility = targetCompatibility = config.java_version
+}
 
 dependencies {
 
@@ -49,7 +51,7 @@ task wrapper(type: Wrapper) {
 
 minecraft {
     mappings = config.mappings
-    version = "${config.mc_version}-${config.forge_version}-${config.mc_version}"
+    version = "${config.mc_version}-${config.forge_version}"
     if (file('../run').exists()) {
 	    runDir = '../run/eclipse'
     } else {
@@ -92,7 +94,7 @@ jar {
 curseforge {
 	apiKey = project.curseForgeApiKey
 	project {
-		id = config.curseProjecId
+		id = config.curseProjectId
 		changelog = file('src/main/resources/changelog.txt')
 		releaseType = 'release'
 		addGameVersion "${config.mc_version}"

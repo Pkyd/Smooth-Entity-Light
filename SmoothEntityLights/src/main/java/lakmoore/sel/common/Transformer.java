@@ -5,6 +5,7 @@ import static org.objectweb.asm.Opcodes.*;
 import java.util.Iterator;
 
 import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraftforge.fml.common.FMLLog;
 
 import org.apache.logging.log4j.Level;
 import org.objectweb.asm.ClassReader;
@@ -17,8 +18,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
-
-import cpw.mods.fml.common.FMLLog;
 
 /**
  * 
@@ -44,7 +43,7 @@ public class Transformer implements IClassTransformer {
 
 
 	private static void log(String message) {
-		FMLLog.log("SmoothEntityLights", Level.INFO, "%s", message);
+		FMLLog.info("%s", message);
 	}
 
 	private static void error(String message) {

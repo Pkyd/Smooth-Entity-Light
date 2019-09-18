@@ -5,10 +5,9 @@ import java.util.List;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.MathHelper;
-import cpw.mods.fml.common.event.FMLInterModComms;
-import cpw.mods.fml.common.event.FMLInterModComms.IMCMessage;
-import cpw.mods.fml.common.registry.GameData;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.common.event.FMLInterModComms.IMCMessage;
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
@@ -75,26 +74,19 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                 }
                 else
                 {
-                    //Get the light from the held item
-                    ItemStack item = thePlayer.getCurrentEquippedItem();
-                    int lightLevel = Config.itemsMap.getLightFromItemStack(item);
-                                        
-                    //if we are underwater and the source is extinguishable
+                    //if we are underwater and the source is extinguishable => light = 0
                     boolean inWater = checkPlayerWater(thePlayer);
-                    if (
-                    	inWater
-                    	&& item != null
-                    	&& Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(item.getItem()), item.getMetadata()) == 1
-                    ) {
-                        lightLevel = 0;
-                    }
                     
-                    //go through the armor slots looking for brighter items
-                    for (ItemStack armor : thePlayer.inventory.armorInventory)
+                    int lightLevel = 0;
+
+                    //go through the item and armor slots looking for brighter items
+                    for (ItemStack stack : thePlayer.getEquipmentAndArmor())
                     {
-                        if (armor != null && (!inWater || Config.notWaterProofItems.retrieveValue(GameData.getItemRegistry().getNameForObject(armor.getItem()), armor.getMetadata()) == 0))
+                        if (
+                        	stack != null 
+                        	&& (!inWater || Config.notWaterProofItems.retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata()) == 0))
                         {
-                            lightLevel = LightUtils.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(armor));
+                            lightLevel = LightUtils.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(stack));
                         }
                     }
                     return lightLevel;
@@ -108,10 +100,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
     {
         if (thePlayer.isInWater())
         {
-            int x = MathHelper.floor_double(thePlayer.posX + 0.5D);
-            int y = MathHelper.floor_double(thePlayer.posY + thePlayer.getEyeHeight());
-            int z = MathHelper.floor_double(thePlayer.posZ + 0.5D);
-            return thePlayer.worldObj.getBlock(x, y, z).getMaterial() == Material.water;
+            return thePlayer.world.getBlockState(new BlockPos(thePlayer.getPositionEyes(1f))).getMaterial() == Material.WATER;
         }
         return false;
     }

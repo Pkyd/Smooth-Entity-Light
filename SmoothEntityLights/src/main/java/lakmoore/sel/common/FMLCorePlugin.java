@@ -3,12 +3,12 @@ package lakmoore.sel.common;
 import java.io.File;
 import java.util.Map;
 
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 @IFMLLoadingPlugin.TransformerExclusions({
     "lakmoore"
 })
-@IFMLLoadingPlugin.MCVersion("1.7.10")
+@IFMLLoadingPlugin.MCVersion("1.12.2")
 @IFMLLoadingPlugin.Name("SmoothEntityLight")
 @IFMLLoadingPlugin.SortingIndex(1001)   //After Notch to Srg de-obfuscation
 public class FMLCorePlugin implements IFMLLoadingPlugin
