@@ -129,7 +129,7 @@ task lakPublish(dependsOn: 'curseforge') {
 		//proc.waitFor()
 	    
 	    config.build_number = (config.build_number.toString().toInteger()) + 1
-	    numbersFile.withWriter {
+	    configFile.withWriter {
 	        config.toProperties().store(it, "")
 	    }
     }

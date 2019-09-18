@@ -1,3 +1,8 @@
+3.0.1
+Fixed flood-light/flash-light system (e.g. Ender Eyes)
+Fixed auto-upload to Curse
+Removed some console spam on load
+
 3.0.0
 Forked to Smooth Entity Lights by LakMoore
 
