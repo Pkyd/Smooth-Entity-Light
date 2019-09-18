@@ -4,10 +4,10 @@
   "name": "Smooth Entity Light",
   "version": "${version}",
   "description": "Smooth light version of AtomicStryker's Dynamic Lights Mod",
-  "mcversion": "${mc_version}",
   "url": "https://www.curseforge.com/minecraft/mc-mods/smooth-entity-light",
-  "authors": ["AtomicStryker", "LakMoore"],
+  "authorList": ["AtomicStryker", "LakMoore"],
   "credits": "",
-  "logoFile": "assets/sel/textures/gui/logo.png"
+  "logoFile": "assets/sel/textures/gui/logo.png",
+  "updateJSON": "https://www.dropbox.com/s/svrrpxsmyeqku09/SmoothEntityLight.json?dl=1"
 }
 ]
