@@ -1,8 +1,10 @@
 package lakmoore.sel.world;
 
+import lakmoore.sel.client.FMLEventHandler;
 import lakmoore.sel.client.LightCache;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -55,5 +57,13 @@ public abstract class WorldSEL extends World {
 //		SEL.mcProfiler.endSection();
         return light;
     }
+	
+	@Override
+	@SideOnly(Side.CLIENT)
+    public boolean setBlockState(BlockPos pos, IBlockState newState, int flags) {
+		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(pos, 8));		
+		return super.setBlockState(pos, newState, flags);    	
+    }
+
 
 }

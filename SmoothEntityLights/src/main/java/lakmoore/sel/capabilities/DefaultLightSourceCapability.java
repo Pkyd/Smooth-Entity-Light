@@ -12,7 +12,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -38,9 +37,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	private ArrayList<BaseAdaptor> adaptors;
 
 	private float maxDiff;
-	private float prevX;
-	private float prevY;
-	private float prevZ;
+	private BlockPos prev;
 	private int prevLight;
 	private boolean underwater = false;
 
@@ -55,9 +52,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		this.entity = entity;
 		adaptors = new ArrayList<BaseAdaptor>();
 		prevLight = 0;
-		prevX = (float) entity.posX;
-		prevY = (float) entity.posY;
-		prevZ = (float) entity.posZ;
+		prev = new BlockPos(entity.posX, entity.posY, entity.posZ);
 
 		checkDistanceLOD();
 	}
@@ -107,9 +102,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			return result;
 		}
 
-		float currentX = (float) entity.posX;
-		float currentY = (float) entity.posY;
-		float currentZ = (float) entity.posZ;
+		BlockPos current = new BlockPos(entity.posX, entity.posY, entity.posZ);
 
 		// Re-calculate the light level
 		int lightLevel = getLightLevel();
@@ -120,40 +113,27 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			return result;
 		}
 
-		float dX = currentX - prevX;
-		float dY = currentY - prevY;
-		float dZ = currentZ - prevZ;
-		float sqDist = (dX * dX) + (dY * dY) + (dZ * dZ);
-
 		// If the entity has moved or changed light level
-		if (sqDist > maxDiff || lightLevel != prevLight) {
+		if (current.distanceSq(prev) > maxDiff || lightLevel != prevLight) {
 			prevLight = lightLevel;
 
 			int radius = 8;
-			int pX = (int) prevX;
-			int pY = (int) prevY;
-			int pZ = (int) prevZ;
-			int cX = (int) currentX;
-			int cY = (int) currentY;
-			int cZ = (int) currentZ;
 
 			// always re-light the old position (think extinguished torches!)
-			result.addAll(LightUtils.getVolumeForRelight(pX, pY, pZ, radius));
+			result.addAll(LightUtils.getVolumeForRelight(prev, radius));
 
 			// If we have moved to another block
-			if (pX != cX || pY != cY || pZ != cZ) {
+			if (!current.equals(prev)) {
 				// re-light the current position
-				result.addAll(LightUtils.getVolumeForRelight(cX, cY, cZ, radius));
+				result.addAll(LightUtils.getVolumeForRelight(current, radius));
 			}
 
 			// update the old position to the new position
-			prevX = currentX;
-			prevY = currentY;
-			prevZ = currentZ;
+			prev = current;
 
 			checkDistanceLOD();
 
-			Block block = world.getBlockState(new BlockPos(MathHelper.floor(currentX), MathHelper.floor(currentY), MathHelper.floor(currentZ))).getBlock();
+			Block block = world.getBlockState(current).getBlock();
 			this.underwater = (block == Blocks.WATER);
 		}
 		return result;
@@ -177,19 +157,17 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 
 	private void checkDistanceLOD() {
 		maxDiff = maxDiffNear;
-		if (Math.pow(thePlayer.posX - prevX, 2) + Math.pow(thePlayer.posY - prevY, 2)
-				+ Math.pow(thePlayer.posZ - prevZ, 2) > farDistSq) {
+		if (
+			thePlayer != null
+			&& prev.distanceSq(thePlayer.posX, thePlayer.posY, thePlayer.posZ) > farDistSq
+		) {
 			maxDiff = maxDiffFar;
 		}
-
 	}
 
 	@Override
 	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-		if (capability == SEL.LIGHT_SOURCE_CAPABILITY) {
-			return true;
-		}
-		return false;
+		return capability == SEL.LIGHT_SOURCE_CAPABILITY;
 	}
 
 	@Override

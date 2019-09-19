@@ -88,7 +88,7 @@ public class LightUtils {
         	target = target.add(0.5, 0.5, 0.5);
         
             AxisAlignedBB aabb = new AxisAlignedBB(pos);
-            aabb.grow(SEL.maxSearchDist, SEL.maxSearchDist, SEL.maxSearchDist);
+            aabb = aabb.grow(SEL.maxSearchDist, SEL.maxSearchDist, SEL.maxSearchDist);
             
 			List<Entity> entities = ((World) world).getEntitiesWithinAABB(Entity.class, aabb, HAS_ENTITY_LIGHT);
             for (Entity entity : entities) {
@@ -135,20 +135,20 @@ public class LightUtils {
         return maxLight;
     }
 	    
-    public static ArrayList<BlockPos> getVolumeForRelight(int x, int y, int z, int radius) {
+    public static ArrayList<BlockPos> getVolumeForRelight(BlockPos pos, int radius) {
     	ArrayList<BlockPos> result = new ArrayList<BlockPos>();
-        int minX = x - radius;
-        int minY = y - radius;
-        int minZ = z - radius;
-        int maxX = x + radius;
-        int maxY = y + radius;
-        int maxZ = z + radius;
+        int minX = pos.getX() - radius;
+        int minY = pos.getY() - radius;
+        int minZ = pos.getZ() - radius;
+        int maxX = pos.getX() + radius;
+        int maxY = pos.getY() + radius;
+        int maxZ = pos.getZ() + radius;
 
 		for (int i = minX; i <= maxX; i++) {
     		for (int j = minY; j <= maxY; j++) {
         		for (int k = minZ; k <= maxZ; k++) {
-        			BlockPos pos = new BlockPos(i, j, k);
-        			result.add(pos);
+        			BlockPos pos1 = new BlockPos(i, j, k);
+        			result.add(pos1);
     	    	}
     		}            			
 		}

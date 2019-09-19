@@ -1,6 +1,7 @@
 package lakmoore.sel.client.adaptors;
 
-import lakmoore.sel.capabilities.ILightSourceCapability;
+import java.util.ArrayList;
+
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
@@ -22,34 +23,39 @@ import net.minecraft.world.World;
  */
 public class FloodLightAdaptor extends BaseAdaptor
 {
-	private EntityPlayer thePlayer;
-    private final PartialLightAdaptor[] partialLights;
-    private final boolean simpleMode;
-    private final int freeDistance = 8;  //Makes this light source a little more useful/interesting
-    private final float beamStrength = 26.0F;
+	public EntityPlayer thePlayer;
+	public final int freeDistance = 8;  //Makes this light source a little more useful/interesting
+	public final float beamStrength = 26.0F;
+    
+	public static ArrayList<PartialLightAdaptor> lights;
+    public static int ID = 0;
+    public static float[] pitch = {0f, 0f, 0f, -8f, 8f};
+    public static float[] yaw = {0f, 8f, -8f, 0f, 0f};
+    public static int lightLevel = 0;
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
 		thePlayer = (EntityPlayer)entity;
-		this.simpleMode = simpleMode;
+		
+		if (lights != null) {
+			for (PartialLightAdaptor light : lights) {
+				light.kill();
+			}			
+		}
+		
+		lights = new ArrayList<PartialLightAdaptor>();
+		ID = 0;
+		
+		int count = 5;
 		if(simpleMode)
-	        partialLights = new PartialLightAdaptor[1];
-		else
-			partialLights = new PartialLightAdaptor[5];
+			count = 1;
 
 		Entity dummyEntity;
-		ILightSourceCapability sources;
-        for (int i = 0; i < partialLights.length; i++)
+        for (int i = 0; i < count; i++)
         {
-        	dummyEntity = new DummyEntity(entity.world);            
-    		sources = dummyEntity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);
-    		if (sources != null) {
-                partialLights[i] = new PartialLightAdaptor(dummyEntity);
-                sources.addLightSource(partialLights[i]);        		    			
-                thePlayer.world.spawnEntity(dummyEntity);
-    		} else {
-    			SEL.log.warn("Unable to find Light Source Capability on DummyEntity! Floodlight will not be working.");
-    		}
+        	dummyEntity = new DummyEntity(entity.world);      
+            entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+            thePlayer.world.spawnEntity(dummyEntity);
         }
 
 	}
@@ -57,58 +63,48 @@ public class FloodLightAdaptor extends BaseAdaptor
     //Doesn't get the level of this adaptor but does update the dummy adaptors
 	@Override
     public int getLightLevel()
-    {
+    {		
         if (thePlayer != null && thePlayer.isEntityAlive() && !SEL.disabled)
         {
-            int lightLevel = 0;
+            lightLevel = 0;
         	for (ItemStack item : thePlayer.getHeldEquipment()) {
                 lightLevel = LightUtils.maxLight(lightLevel, Config.floodLights.getLightFromItemStack(item));        		
         	}
-                        
-            handleLight(partialLights[0], lightLevel, 0f, 0f);
-            
-            if (!simpleMode)
-            {
-                handleLight(partialLights[1], lightLevel, 0f, 8f);
-                handleLight(partialLights[2], lightLevel, 0f, -8f);
-                handleLight(partialLights[3], lightLevel, -8f, 0f);
-                handleLight(partialLights[4], lightLevel, 8f, 0f);
-            }
-        }
+        	
+        	// Considers eye-height
+        	Vec3d origin = thePlayer.getPositionEyes(1.0f);
+        	
+        	for (PartialLightAdaptor light: lights) {
+        		
+            	if (lightLevel == 0) {
+            		light.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+            		light.lightLevel = 0;
+            	} else {
+                    Vec3d look = getVector(thePlayer.rotationYaw + yaw[light.Id], thePlayer.rotationPitch + pitch[light.Id]);
+                    
+                    look = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
+                    RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, look);
+                    if (rtr != null)
+                    {
+                        int dist = (int) Math.round(thePlayer.getDistance(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z));
+                        dist = Math.max(0, dist - freeDistance);
+                        light.lightLevel = Math.max(0, lightLevel - dist);
+                        light.entity.setPosition(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z);
+                    }
+                    else
+                    {
+                    	light.lightLevel = 0;
+                    	light.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+                    }	            		
+            	}
+
+        	}
+        }               
 
         //this adaptor does not give off light at the player's location
         return 0;	
     }
-    
-    private void handleLight(PartialLightAdaptor source, int light, float yawRot, float pitchRot)
-    {
-    	if (light == 0) {
-            source.lightLevel = 0;
-            source.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
-            return;
-    	}
-
-    	// Considers eye-height
-    	Vec3d origin = thePlayer.getPositionEyes(1.0f);
-
-        Vec3d look = getVector(thePlayer.rotationYaw + yawRot, thePlayer.rotationPitch + pitchRot);
-        
-        look = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
-        RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, look);
-        if (rtr != null)
-        {
-            int dist = (int) Math.round(thePlayer.getDistance(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z));
-            dist = Math.max(0, dist - freeDistance);
-            source.lightLevel = Math.max(0, light - dist);
-            source.entity.setPosition(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z);
-        }
-        else
-        {
-            source.lightLevel = 0;
-            source.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
-        }
-    }
-    
+	
     public static Vec3d getVector(float rotYaw, float rotPitch)
     {
         float f1 = MathHelper.cos(-rotYaw * 0.017453292F - (float)Math.PI);
@@ -120,24 +116,12 @@ public class FloodLightAdaptor extends BaseAdaptor
     
 	@Override
 	public void kill() {
+		for (PartialLightAdaptor light : lights) {
+			light.kill();
+		}
 		super.kill();
 		thePlayer = null;
 	}
-
-    
-    private class PartialLightAdaptor extends BaseAdaptor
-    {
-		public int lightLevel = 0;
-
-		PartialLightAdaptor(Entity entity) {
-			super(entity);
-		}
-
-		@Override
-		public int getLightLevel() {
-			return lightLevel;
-		}
-    }
     
     public class DummyEntity extends Entity
     {

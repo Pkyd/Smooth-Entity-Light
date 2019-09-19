@@ -14,13 +14,6 @@ public class EntityItemAdaptor extends BaseAdaptor
 	public EntityItemAdaptor(EntityItem eI)
 	{
 		super(eI);
-		if (eI != null) {
-			stack = eI.getItem();
-			if (stack != null) {
-				notWaterProof = Config.notWaterProofItems.retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata()) == 1;
-				stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
-			}
-		}
 	}
 
 	public int getLightLevel()
@@ -32,8 +25,16 @@ public class EntityItemAdaptor extends BaseAdaptor
 		{
 			return 15;
 		}
-		else if (stack != null)
-		{                
+		else
+		{           
+			if (stack == null) {
+				stack = ((EntityItem)entity).getItem();
+				if (stack != null) {
+					notWaterProof = Config.notWaterProofItems.retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata()) == 1;
+					stackLightlevel = Config.itemsMap.getLightFromItemStack(stack);            		                		
+				}
+			}
+			
 			if (
 				notWaterProof 
 				&& entity.world.getBlockState(entity.getPosition()).getMaterial() == Material.WATER
@@ -41,9 +42,6 @@ public class EntityItemAdaptor extends BaseAdaptor
 				return 0;
 			else
 				return stackLightlevel;                	
-		}
-		else {
-			return 0;
 		}
 	}
 	

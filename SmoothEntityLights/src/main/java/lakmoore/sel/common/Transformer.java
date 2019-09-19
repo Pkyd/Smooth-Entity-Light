@@ -34,10 +34,9 @@ public class Transformer implements IClassTransformer {
 	private final String entityClassName = "net/minecraft/entity/Entity";
 
 	// ----------- Details for ChunkCache Upgrade -----------
-	private final String classWorldRendererName = "net.minecraft.client.renderer.WorldRenderer";
-	private final String methodUpdateRendererName = "updateRenderer";
-	private final String methodUpdateRendererNameObf = "func_147892_a";
-	private final String methodUpdateRendererDesc = "(Lnet/minecraft/entity/EntityLivingBase;)V";
+	private final String classRenderChunkName = "net.minecraft.client.renderer.chunk.RenderChunk";
+	private final String methodCreateRegionRenderCacheName = "createRegionRenderCache";
+	//private final String methodUpdateRendererNameObf = "func_147892_a";
 	private final String classChunkCacheNameOLD = "net/minecraft/world/ChunkCache";
 	private final String classChunkCacheNameNEW = "lakmoore/sel/world/ChunkCacheSEL";
 
@@ -57,7 +56,7 @@ public class Transformer implements IClassTransformer {
 		if (newName.equals(classNameWorldClient)) {
 			log("********* INSIDE TRANSFORMER ABOUT TO PATCH: " + name + "|" + newName);
 			return handleWorldClientTransform(bytes, obf);
-		} else if (newName.equals(classWorldRendererName)) {
+		} else if (newName.equals(classRenderChunkName)) {
 			log("********* INSIDE TRANSFORMER ABOUT TO PATCH: " + name + "|" + newName);
 			return handleChunkCacheTransform(bytes, obf);
 		}
@@ -72,17 +71,17 @@ public class Transformer implements IClassTransformer {
 		classReader.accept(classNode, 0);
 		Boolean found = false;
 		
-		String methodName = methodUpdateRendererName;
-		if (obf) {
-			methodName = methodUpdateRendererNameObf;
-		}
+		String methodName = methodCreateRegionRenderCacheName;
+//		if (obf) {
+//			methodName = methodUpdateRendererNameObf;
+//		}
 
 		// find method to inject into
 		Iterator<MethodNode> methods = classNode.methods.iterator();
 		while (methods.hasNext() && !found) {
 			MethodNode m = methods.next();
 			
-			if (m.name.equals(methodName) && m.desc.equals(methodUpdateRendererDesc)) {
+			if (m.name.equals(methodName)) {
 				// Found the correct method
 				AbstractInsnNode targetNode = null;
 				Iterator<AbstractInsnNode> iter = m.instructions.iterator();

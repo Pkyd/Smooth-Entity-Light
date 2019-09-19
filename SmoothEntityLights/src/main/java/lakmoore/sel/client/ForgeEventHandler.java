@@ -1,26 +1,26 @@
 package lakmoore.sel.client;
 
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
-import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.client.adaptors.BrightAdaptor;
 import lakmoore.sel.client.adaptors.CreeperAdaptor;
 import lakmoore.sel.client.adaptors.EntityBurningAdaptor;
 import lakmoore.sel.client.adaptors.EntityItemAdaptor;
 import lakmoore.sel.client.adaptors.FloodLightAdaptor;
 import lakmoore.sel.client.adaptors.MobLightAdaptor;
+import lakmoore.sel.client.adaptors.PartialLightAdaptor;
 import lakmoore.sel.client.adaptors.PlayerOtherAdaptor;
 import lakmoore.sel.client.adaptors.PlayerSelfAdaptor;
 import lakmoore.sel.world.WorldSEL;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.util.math.BlockPos;
@@ -29,8 +29,6 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
-import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -40,17 +38,17 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class ForgeEventHandler 
 {    
 	
-	@SideOnly(Side.CLIENT)
-	@SubscribeEvent
-    public void onBlockBreak(BlockEvent.BreakEvent event) {
-		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
-	}
-
-	@SideOnly(Side.CLIENT)
-	@SubscribeEvent
-    public void onBlockPlace(BlockEvent.PlaceEvent event) {
-		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
-	}
+//	@SideOnly(Side.CLIENT)
+//	@SubscribeEvent
+//    public void onBlockBreak(BlockEvent.BreakEvent event) {
+//		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
+//	}
+//
+//	@SideOnly(Side.CLIENT)
+//	@SubscribeEvent
+//    public void onBlockPlace(BlockEvent.PlaceEvent event) {
+//		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
+//	}
 
     @SubscribeEvent
 	@SideOnly(Side.CLIENT)
@@ -184,6 +182,11 @@ public class ForgeEventHandler
                 MobLightAdaptor adaptor = new MobLightAdaptor((EntityLivingBase)entity);
                 sources.addLightSource(adaptor);
             }
+            
+            if (Config.lightChargingCreepers && entity instanceof EntityCreeper) {
+            	CreeperAdaptor adaptor = new CreeperAdaptor((EntityCreeper)entity);
+            	sources.addLightSource(adaptor);
+            }
 
         }    
         else if (entity instanceof EntityArrow || entity instanceof EntityFireball)
@@ -210,7 +213,7 @@ public class ForgeEventHandler
             PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP)entity);
             sources.addLightSource(adaptor);
         }
-        else if (entity instanceof EntityPlayerMP)
+        else if (entity instanceof EntityPlayerSP)
         {
             if (Config.lightFloodLight)
             {
@@ -226,6 +229,14 @@ public class ForgeEventHandler
 
             checkForOptifine();
         }
+        else if (entity instanceof FloodLightAdaptor.DummyEntity)
+        {
+            if (Config.lightFloodLight)
+            {
+            	PartialLightAdaptor adaptor = new PartialLightAdaptor(entity);
+                sources.addLightSource(adaptor);        		    			
+            }
+        }
         else
         {
             //Do nothing
@@ -235,27 +246,6 @@ public class ForgeEventHandler
             event.addCapability(SEL.LIGHT_SOURCE_CAPABILITY_NAME, sources);
         }
 
-    }
-
-    // TODO: Check that we really need this event!?  Creeper Adaptor checks creeper status for light level!?
-    @SubscribeEvent
-    public void onPlaySoundAtEntity(PlaySoundAtEntityEvent event)
-    {
-        if (
-        	!SEL.disabled 
-        	&& Config.lightChargingCreepers 
-        	&& event.getSound() != null 
-        	&& event.getSound().getRegistryName().getPath().equals("entity.creeper.primed") 
-        	&& event.getEntity() != null 
-        	&& event.getEntity().isEntityAlive()
-        	&& SEL.enabledForDimension(event.getEntity().dimension)
-        ) {
-        	ILightSourceCapability sources = event.getEntity().getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
-            if (sources == null)
-        		return;
-            CreeperAdaptor creeper = new CreeperAdaptor((EntityCreeper) event.getEntity());
-            sources.addLightSource(creeper);
-        }
     }
     
     private void checkForOptifine() 
