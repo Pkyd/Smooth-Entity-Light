@@ -3,6 +3,8 @@ package lakmoore.sel.client;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -18,13 +20,18 @@ import net.minecraft.world.ChunkCoordIntPair;
 public class FMLEventHandler {
 	
 	private static boolean forceUpdate = false;
+	
+    /*
+     * Number of milliseconds between dynamic light updates
+     */
+    public static int updateInterval = 40;
 
 	public static LinkedList<Integer> counts = new LinkedList<Integer>();
 	public static int tickCount = 0;
 	
-	public static HashSet<BlockPos> blocksToUpdate = new HashSet<BlockPos>();
-	public static HashSet<ChunkCoordIntPair> chunksToUpdate = new HashSet<ChunkCoordIntPair>();
-
+	public static Set<BlockPos> blocksToUpdate = ConcurrentHashMap.newKeySet();
+	public static Set<BlockPos> chunksToUpdate;
+	
 	public static int totalBlockCount() {
 		int count = 0;
 		for (Object i : counts.toArray()) {
@@ -63,7 +70,10 @@ public class FMLEventHandler {
             }
 
             //check every loaded entity and update any that have light sources
-            if (forceUpdate || !SEL.disabled) {
+            if (
+            	forceUpdate 
+            	|| (!SEL.disabled && (System.currentTimeMillis() - SEL.lastLightUpdateTime > updateInterval))
+            ) {
 
                 // Tick all entities
                 @SuppressWarnings("unchecked")
@@ -89,29 +99,36 @@ public class FMLEventHandler {
                 	counts.remove();
                 }
                 
-                chunksToUpdate = new HashSet<ChunkCoordIntPair>();
+                chunksToUpdate = ConcurrentHashMap.newKeySet();
 
                 // update all blocks that have been marked dirty since last tick
                 blocksToUpdate.parallelStream().forEach(new Consumer<BlockPos>() {
 					@Override
 					public void accept(BlockPos pos) {
-						ChunkCoordIntPair chunkCoords = new ChunkCoordIntPair(pos.getX() >> 4, pos.getZ() >> 4);
-						chunksToUpdate.add(chunkCoords);
-						LightCache lc = LightUtils.lightCache.get(chunkCoords);
+						int x = pos.getX() >> 4;
+						int z = pos.getZ() >> 4;
+						LightCache lc = LightUtils.lightCache.get(new ChunkCoordIntPair(x, z));
 						if (lc != null) {
 							int y = pos.getY();
 							if (y < 0) y = 0;
 					        lc.lights[pos.getX() & 15][y][pos.getZ() & 15] = LightUtils.getEntityLightLevel(ClientProxy.mcinstance.theWorld, pos.getX(), y, pos.getZ());
+							chunksToUpdate.add(new BlockPos(x, pos.getY() >> 4, z));
 						}                	
 					}
 				});
                 blocksToUpdate.clear();
                                  
                 // mark for update the chunks that contain dirty blocks
-                chunksToUpdate.parallelStream().forEach(new Consumer<ChunkCoordIntPair>() {
+                chunksToUpdate.parallelStream().forEach(new Consumer<BlockPos>() {
 					@Override
-					public void accept(ChunkCoordIntPair chunkCoords) {
-	    				ClientProxy.mcinstance.renderGlobal.markBlockForUpdate(chunkCoords.chunkXPos << 4, 0, chunkCoords.chunkZPos << 4);                							
+					public void accept(BlockPos chunkCoords) {
+						int x = chunkCoords.getX() << 4;
+						int y = chunkCoords.getY() << 4;
+						int z = chunkCoords.getZ() << 4;
+						x++;
+						y++;
+						z++;
+	    				ClientProxy.mcinstance.renderGlobal.markBlockForUpdate(x, y, z);                							
 					}
 				});
                 chunksToUpdate.clear();

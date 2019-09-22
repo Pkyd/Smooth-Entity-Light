@@ -15,11 +15,6 @@ public class Config
     private static Configuration config;
 
     /*
-     * Number of milliseconds between dynamic light updates
-     */
-    public static int updateInterval;
-
-    /*
      * Configurable flags
      */
     public static boolean lightBurningEntities;
