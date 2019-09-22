@@ -119,22 +119,24 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		
 		// If the entity has moved or changed light level
 		if (current.squareDistanceTo(prev) > maxDiff || lightLevel != prevLight) {
-			prevLight = lightLevel;
 			
-			// always re-light the old position (think extinguished torches!)
-			result.addAll(LightUtils.getVolumeForRelight(prevBlock, radius));
+			if (lightLevel > 0 || prevLight > 0) {
+				// always re-light the old position (think extinguished torches!)
+				result.addAll(LightUtils.getVolumeForRelight(prevBlock, radius));				
+			}
 
 			BlockPos currentBlock = new BlockPos(current);
 
-			// If we have moved to another block
-			if (!currentBlock.equals(prevBlock)) {
+			// If we have moved to another block and we are giving off any light
+			if (!currentBlock.equals(prevBlock) && lightLevel > 0) {
 				// re-light the current position
 				result.addAll(LightUtils.getVolumeForRelight(currentBlock, radius));
-				prevBlock = currentBlock;
 			}
 
 			// update the old position to the new position
 			prev = current;
+			prevBlock = currentBlock;
+			prevLight = lightLevel;
 
 			checkDistanceLOD();
 

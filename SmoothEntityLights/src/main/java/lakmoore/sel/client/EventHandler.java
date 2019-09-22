@@ -50,6 +50,7 @@ public class EventHandler {
 
 	public static LinkedList<Integer> counts = new LinkedList<Integer>();
 	public static int tickCount = 0;
+	public static int ticksSkippedCount = 0;
 	
 	public static HashSet<BlockPos> blocksToUpdate = new HashSet<BlockPos>();
     //Using a BlockPos to hold ChunkPos - with a Y value!
@@ -90,9 +91,13 @@ public class EventHandler {
                 forceUpdate = true;
                 
             }
-
-            //check every loaded entity and update any that have light sources
-            if (forceUpdate || !SEL.disabled) {
+            
+            // Check every loaded entity and update any that have light sources
+            // No need to do this more than 25 times per second
+            if (
+            	forceUpdate 
+            	|| (!SEL.disabled && System.currentTimeMillis() - SEL.lastLightUpdateTime > 40)
+            ) {
 
                 // Tick all entities
 				List<Entity> allEntities = ClientProxy.mcinstance.world.loadedEntityList;
@@ -156,6 +161,10 @@ public class EventHandler {
         		forceUpdate = false;
                 
                 SEL.lastLightUpdateTime = System.currentTimeMillis();
+            } else {
+            	if (!SEL.disabled) {
+            		ticksSkippedCount++;
+            	}
             }
 
         }
@@ -224,6 +233,7 @@ public class EventHandler {
     		);
     		event.getLeft().add(
     			"SEL avg blocks re-lit: " + Math.round(10f * EventHandler.totalBlockCount() / EventHandler.counts.size()) / 10f
+    			+ " skipped ticks: " + EventHandler.ticksSkippedCount
     		);
         }
     } 
