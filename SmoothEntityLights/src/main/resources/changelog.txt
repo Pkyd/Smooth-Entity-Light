@@ -1,3 +1,13 @@
+3.0.5 (for MC1.12.2)
+Capped light update rate at 25 per second (for improved performance)
+Using Concurrent Hash Maps for thread safety
+Tracking Chunk Updates in the Y direction too!
+
+3.0.4 (for MC1.7.10)
+Capped light update rate at 25 per second (for improved performance)
+Using Concurrent Hash Maps for thread safety
+Tracking Chunk Updates in the Y direction too!
+
 3.0.2
 Release for MC1.12.2
 

@@ -1,12 +1,10 @@
 package lakmoore.sel.client;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
