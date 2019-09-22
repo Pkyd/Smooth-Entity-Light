@@ -3,7 +3,11 @@ package lakmoore.sel.client;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
 import lakmoore.sel.capabilities.ILightSourceCapability;
@@ -57,9 +61,9 @@ public class EventHandler {
 	public static int tickCount = 0;
 	public static int ticksSkippedCount = 0;
 	
-	public static HashSet<BlockPos> blocksToUpdate = new HashSet<BlockPos>();
+	public static Set<BlockPos> blocksToUpdate = ConcurrentHashMap.newKeySet();
     //Using a BlockPos to hold ChunkPos - with a Y value!
-	public static HashSet<BlockPos> chunksToUpdate = new HashSet<BlockPos>();
+	public static Set<BlockPos> chunksToUpdate;
 
 	public static int totalBlockCount() {
 		int count = 0;
@@ -127,24 +131,27 @@ public class EventHandler {
                 }
                 
                 //Using BlockPos to hold ChunkPos with a Y value!
-                chunksToUpdate = new HashSet<BlockPos>();
+                chunksToUpdate = ConcurrentHashMap.newKeySet();
 
-                // update all blocks that have been marked dirty since last tick
-                blocksToUpdate.parallelStream().forEach(new Consumer<BlockPos>() {
-					@Override
-					public void accept(BlockPos pos) {
+                // update all blocks that have been marked dirty since last tick    
+                // and map that to a list of dirty chunks, no duplicates (Set!)
+                chunksToUpdate.addAll(
+                	blocksToUpdate.parallelStream().map(pos -> {
 						int x = pos.getX() >> 4;
 						int z = pos.getZ() >> 4;
-						BlockPos chunkCoords = new BlockPos(x, pos.getY() >> 4, z);
-						chunksToUpdate.add(chunkCoords);
 						LightCache lc = LightUtils.lightCache.get(new ChunkPos(x, z));
 						if (lc != null) {
 							int y = pos.getY();
 							if (y < 0) y = 0;
 					        lc.lights[pos.getX() & 15][y][pos.getZ() & 15] = LightUtils.getEntityLightLevel(ClientProxy.mcinstance.world, pos);
+							return new BlockPos(x, pos.getY() >> 4, z);
 						}                	
-					}
-				});
+						return null;
+	                })
+                	.filter(pos -> pos != null)
+	                .collect(Collectors.toList())
+                );
+                		                		
                 blocksToUpdate.clear();
                                  
                 // mark for update the chunks that contain dirty blocks
@@ -161,7 +168,6 @@ public class EventHandler {
 	    				ClientProxy.mcinstance.renderGlobal.markBlockRangeForRenderUpdate(x, y, z, x, y, z);      
 					}
 				});
-                chunksToUpdate.clear();
 
         		forceUpdate = false;
                 
