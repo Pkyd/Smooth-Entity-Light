@@ -30,7 +30,8 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 	modid = SEL.modId, 
 	name = "Smooth Entity Light", 
 	version = "MODVERSION", 
-	acceptedMinecraftVersions = "MCVERSION"
+	acceptedMinecraftVersions = "MCVERSION",
+	dependencies="required-after:forge@[FORGEVERSION,)"
 )
 public class SEL {
     public final static String modId = "sel";
@@ -80,12 +81,6 @@ public class SEL {
     public void serverLoad(FMLServerStartingEvent event) {
         event.registerServerCommand(new Command());
     }
-
-	public static void onEntityRemoved(Entity entity) {
-		ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
-        if (sources != null)
-    		sources.destroy();
-	}
 	
 	public static boolean enabledForDimension(int dimensionID) {
 		if (Config.dimensionBlacklist == null || Config.dimensionBlacklist.length == 0) {

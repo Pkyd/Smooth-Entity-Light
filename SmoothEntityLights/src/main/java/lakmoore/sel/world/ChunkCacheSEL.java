@@ -22,7 +22,6 @@ public class ChunkCacheSEL extends ChunkCache {
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
     public int getCombinedLight(BlockPos pos, int lightValue) {
 //		SEL.mcProfiler.startSection(SEL.modId + ":getLightBrightness");
 		

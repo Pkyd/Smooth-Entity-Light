@@ -61,6 +61,7 @@ minecraft {
 	replaceIn 'SEL.java'
 		replace 'MCVERSION', config.mc_version
         replace 'MODVERSION', "${config.mod_version}.${config.build_number}"
+        replace 'FORGEVERSION', "${config.forge_version}"
 
 }
 

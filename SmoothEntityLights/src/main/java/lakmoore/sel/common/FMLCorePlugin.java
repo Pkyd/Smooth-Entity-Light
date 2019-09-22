@@ -10,7 +10,7 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 })
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 @IFMLLoadingPlugin.Name("SmoothEntityLight")
-@IFMLLoadingPlugin.SortingIndex(1001)   //After Notch to Srg de-obfuscation
+@IFMLLoadingPlugin.SortingIndex(1001)   //1001 = After Notch to Srg de-obfuscation
 public class FMLCorePlugin implements IFMLLoadingPlugin
 {
 	

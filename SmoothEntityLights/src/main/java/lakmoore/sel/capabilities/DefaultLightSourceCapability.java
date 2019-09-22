@@ -2,7 +2,7 @@ package lakmoore.sel.capabilities;
 
 import java.util.ArrayList;
 
-import lakmoore.sel.client.FMLEventHandler;
+import lakmoore.sel.client.EventHandler;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import lakmoore.sel.client.adaptors.BaseAdaptor;
@@ -12,6 +12,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -30,6 +31,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	private static final float maxDiffNear = 0.01f;
 	private static final float maxDiffFar = 1.4f;
 	private static final float farDistSq = 1024.0f;
+	private static final int radius = 8;
 
 	protected World world;
 	protected Entity entity;
@@ -37,22 +39,23 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	private ArrayList<BaseAdaptor> adaptors;
 
 	private float maxDiff;
-	private BlockPos prev;
+	private Vec3d prev;
+	private BlockPos prevBlock;
 	private int prevLight;
 	private boolean underwater = false;
-
-	static {
-		thePlayer = Minecraft.getMinecraft().player;
-	}
+	
 	public DefaultLightSourceCapability() {		
 	}
 
 	public void init(Entity entity, World world) {
 		this.world = world;
 		this.entity = entity;
+		thePlayer = Minecraft.getMinecraft().player;
+
 		adaptors = new ArrayList<BaseAdaptor>();
 		prevLight = 0;
-		prev = new BlockPos(entity.posX, entity.posY, entity.posZ);
+		prev = new Vec3d(entity.posX, entity.posY, entity.posZ);
+		prevBlock = new BlockPos(prev);
 
 		checkDistanceLOD();
 	}
@@ -98,11 +101,10 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	 */
 	public ArrayList<BlockPos> getBlocksToUpdate() {
 		ArrayList<BlockPos> result = new ArrayList<BlockPos>();
+		
 		if (entity == null || world == null) {
 			return result;
 		}
-
-		BlockPos current = new BlockPos(entity.posX, entity.posY, entity.posZ);
 
 		// Re-calculate the light level
 		int lightLevel = getLightLevel();
@@ -113,19 +115,22 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			return result;
 		}
 
+		Vec3d current = new Vec3d(entity.posX, entity.posY, entity.posZ);
+		
 		// If the entity has moved or changed light level
-		if (current.distanceSq(prev) > maxDiff || lightLevel != prevLight) {
+		if (current.squareDistanceTo(prev) > maxDiff || lightLevel != prevLight) {
 			prevLight = lightLevel;
-
-			int radius = 8;
-
+			
 			// always re-light the old position (think extinguished torches!)
-			result.addAll(LightUtils.getVolumeForRelight(prev, radius));
+			result.addAll(LightUtils.getVolumeForRelight(prevBlock, radius));
+
+			BlockPos currentBlock = new BlockPos(current);
 
 			// If we have moved to another block
-			if (!current.equals(prev)) {
+			if (!currentBlock.equals(prevBlock)) {
 				// re-light the current position
-				result.addAll(LightUtils.getVolumeForRelight(current, radius));
+				result.addAll(LightUtils.getVolumeForRelight(currentBlock, radius));
+				prevBlock = currentBlock;
 			}
 
 			// update the old position to the new position
@@ -133,7 +138,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 
 			checkDistanceLOD();
 
-			Block block = world.getBlockState(current).getBlock();
+			Block block = world.getBlockState(currentBlock).getBlock();
 			this.underwater = (block == Blocks.WATER);
 		}
 		return result;
@@ -149,7 +154,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			adaptor.kill();
 		}
 		adaptors.clear();
-		FMLEventHandler.blocksToUpdate.addAll(getBlocksToUpdate());
+		EventHandler.blocksToUpdate.addAll(getBlocksToUpdate());
 		entity = null;
 		world = null;
 //		SEL.mcProfiler.endSection();
@@ -159,7 +164,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		maxDiff = maxDiffNear;
 		if (
 			thePlayer != null
-			&& prev.distanceSq(thePlayer.posX, thePlayer.posY, thePlayer.posZ) > farDistSq
+			&& prev.squareDistanceTo(thePlayer.posX, thePlayer.posY, thePlayer.posZ) > farDistSq
 		) {
 			maxDiff = maxDiffFar;
 		}

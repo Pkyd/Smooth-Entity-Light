@@ -1,10 +1,12 @@
 package lakmoore.sel.world;
 
-import lakmoore.sel.client.FMLEventHandler;
+import lakmoore.sel.capabilities.ILightSourceCapability;
+import lakmoore.sel.client.EventHandler;
 import lakmoore.sel.client.LightCache;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -12,8 +14,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 public abstract class WorldSEL extends World {
 		
@@ -28,7 +28,6 @@ public abstract class WorldSEL extends World {
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
     public int getCombinedLight(BlockPos pos, int lightValue) {
 //		SEL.mcProfiler.startSection(SEL.modId + ":getLightBrightness");
 						
@@ -50,7 +49,7 @@ public abstract class WorldSEL extends World {
 					y = 0;
 				}
 	            float lightPlayer = lc.lights[pos.getX() & 15][y][pos.getZ() & 15];
-	            light = LightUtils.getCombinedLight(lightPlayer, light);											
+	            light = LightUtils.getCombinedLight(lightPlayer, light);
 			}
         }
 		
@@ -59,11 +58,19 @@ public abstract class WorldSEL extends World {
     }
 	
 	@Override
-	@SideOnly(Side.CLIENT)
     public boolean setBlockState(BlockPos pos, IBlockState newState, int flags) {
-		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(pos, 8));		
+		EventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(pos, 8));		
 		return super.setBlockState(pos, newState, flags);    	
     }
-
+	
+	@Override
+    public void removeEntity(Entity entity)
+    {
+		ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
+        if (sources != null)
+    		sources.destroy();
+        
+		super.removeEntity(entity);
+    }
 
 }

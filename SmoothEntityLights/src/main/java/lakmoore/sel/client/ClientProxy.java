@@ -34,9 +34,7 @@ public class ClientProxy extends CommonProxy {
         SEL.lightValueMap = new HashMap<Class<? extends Entity>, Boolean>();
         SEL.glowValueMap = new HashMap<Class<? extends Entity>, Integer>();
 
-        MinecraftForge.EVENT_BUS.register(new ForgeEventHandler());
-        MinecraftForge.EVENT_BUS.register(new FMLEventHandler());
-//        FMLCommonHandler.instance().bus().register(new FMLEventHandler());
+        MinecraftForge.EVENT_BUS.register(new EventHandler());
         CapabilityManager.INSTANCE.register(ILightSourceCapability.class, new Storage(), DefaultLightSourceCapability::new);
 
         ClientProxy.nextKeyTriggerTime = System.currentTimeMillis();
