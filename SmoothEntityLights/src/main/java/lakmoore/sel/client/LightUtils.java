@@ -63,7 +63,7 @@ public class LightUtils {
     
 
     /*
-     *  Method that searches for nearby dynamic light sources and calculates the 
+     *  Method that searches for nearby Smooth Entity Light sources and calculates the 
      *  smooth light value at the given location being generated from them
      */
 	public static float getEntityLightLevel(IBlockAccess world, BlockPos pos) {

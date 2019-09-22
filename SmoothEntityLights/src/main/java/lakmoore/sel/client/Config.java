@@ -15,11 +15,6 @@ public class Config
     private static Configuration config;
 
     /*
-     * Number of milliseconds between dynamic light updates
-     */
-    public static int updateInterval;
-
-    /*
      * Configurable flags
      */
     public static boolean lightBurningEntities;
@@ -121,7 +116,7 @@ public class Config
         notWaterProofItems = new ItemConfigHelper(notWaterProofList.getString(), 1);
 
         Property optifine = config.get(Configuration.CATEGORY_GENERAL, "Optifine Override", false);
-        optifine.setComment("Optifine has an Entity Lights of its own.  This mod will turn itself off if Optifine is loaded." + Configuration.NEW_LINE + "Set this to true if you aren't going to use Optifine's Dynamic Lights (even though they work just as well!).");
+        optifine.setComment("Optifine has an Entity Lights of its own.  This mod will turn itself off if Optifine is loaded." + Configuration.NEW_LINE + "Set this to true if you aren't going to use Optifine's Dynamic Lights.");
         optifineOverride = optifine.getBoolean();
         
         Property dimBlacklist = config.get(Configuration.CATEGORY_GENERAL, "Dimension Blacklist", new int[] {});

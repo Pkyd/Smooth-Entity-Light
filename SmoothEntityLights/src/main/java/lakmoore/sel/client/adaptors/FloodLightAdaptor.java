@@ -16,9 +16,9 @@ import net.minecraft.world.World;
 
 /**
  * 
- * @author AtomicStryker
+ * @author AtomicStryker, LakMoore
  *
- * Offers Dynamic Light functionality emulating portable or static Flood Lights
+ * Offers Entity Light functionality emulating portable Flood Lights
  *
  */
 public class FloodLightAdaptor extends BaseAdaptor

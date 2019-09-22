@@ -48,6 +48,11 @@ public class EventHandler {
 	
 	private static boolean forceUpdate = false;
 
+    /*
+     * Minimum number of milliseconds between entity light updates
+     */
+    private static int updateInterval = 40;
+
 	public static LinkedList<Integer> counts = new LinkedList<Integer>();
 	public static int tickCount = 0;
 	public static int ticksSkippedCount = 0;
@@ -96,7 +101,7 @@ public class EventHandler {
             // No need to do this more than 25 times per second
             if (
             	forceUpdate 
-            	|| (!SEL.disabled && System.currentTimeMillis() - SEL.lastLightUpdateTime > 40)
+            	|| (!SEL.disabled && System.currentTimeMillis() - SEL.lastLightUpdateTime > updateInterval)
             ) {
 
                 // Tick all entities
@@ -388,7 +393,7 @@ public class EventHandler {
     {
         if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
         {
-            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString("Optifine is loaded.  Disabling Atomic Stryker's Dynamic Lights.  Check the config file to override."));         
+            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString("Optifine is loaded.  Disabling Smooth Entity Light.  Check the config file to override."));         
             SEL.disabled = true;
         }
     }

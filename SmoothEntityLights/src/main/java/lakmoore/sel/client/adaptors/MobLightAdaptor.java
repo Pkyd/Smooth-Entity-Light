@@ -10,9 +10,9 @@ import net.minecraft.item.ItemStack;
 
 /**
  * 
- * @author AtomicStryker
+ * @author AtomicStryker, LakMoore
  *
- * Offers Dynamic Light functionality to EntityLiving instances, or rather their respective
+ * Offers Entity Light functionality to EntityLiving instances, or rather their respective
  * armor and held Itemstacks. Lights up golden armor and torch Zombies
  *
  */

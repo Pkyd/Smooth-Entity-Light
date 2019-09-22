@@ -72,7 +72,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	 * Values above 15 will not be considered, 15 is the MC max level. Values below
 	 * 1 are considered disabled. Values can be changed on the fly.
 	 * 
-	 * @return int value of Minecraft Light level at the Dynamic Light Source
+	 * @return int value of Minecraft Light level at the Smooth Entity Light Source
 	 */
 	private int getLightLevel() {
 //    	Minecraft.getMinecraft().mcProfiler.startSection(SEL.modId + ":getLightLevel");

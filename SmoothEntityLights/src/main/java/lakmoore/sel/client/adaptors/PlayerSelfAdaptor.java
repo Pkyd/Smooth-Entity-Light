@@ -14,9 +14,9 @@ import lakmoore.sel.client.SEL;
 
 /**
  * 
- * @author AtomicStryker
- *
- * Offers Dynamic Light functionality to the Player Entity itself.
+ * @author AtomicStryker, LakMoore
+ * 
+ * Offers Entity Light functionality to the Player Entity itself.
  * Handheld Items and Armor can give off Light through this Module.
  * 
  * With version 1.1.3 and later you can also use FMLIntercomms to use this 
@@ -25,7 +25,7 @@ import lakmoore.sel.client.SEL;
  * FMLInterModComms.sendRuntimeMessage(sourceMod, "DynamicLights_thePlayer", "forceplayerlighton", "");
  * FMLInterModComms.sendRuntimeMessage(sourceMod, "DynamicLights_thePlayer", "forceplayerlightoff", "");
  * 
- * Note you have to track this yourself. Dynamic Lights will accept and obey, but not recover should you
+ * Note you have to track this yourself. Smooth Entity Light will accept and obey, but not recover should you
  * get stuck in the on or off state inside your own code. It will not revert to off on its own.
  *
  */
