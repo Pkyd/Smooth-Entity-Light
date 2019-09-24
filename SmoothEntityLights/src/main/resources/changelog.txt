@@ -2,6 +2,7 @@
 Added Frustum Culling (for improved performance)
 Currently two methods:  1) Planar Frustum or 2) Vector Dot Product
 Press 'c' to toggle.  I cannot see much difference in performance, but would like to see what the community think.
+Fixed a server-side crash
 
 3.0.5 (for MC1.12.2)
 Capped light update rate at 25 per second (for improved performance)
