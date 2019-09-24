@@ -59,7 +59,6 @@ public class SEL {
     public static CommonProxy proxy;
 
     public static Logger log;
-    public static Profiler mcProfiler;
     
     @CapabilityInject(ILightSourceCapability.class)
     public static Capability<ILightSourceCapability> LIGHT_SOURCE_CAPABILITY = null;
@@ -74,7 +73,6 @@ public class SEL {
     @EventHandler
     public void init(FMLInitializationEvent evt) {
         proxy.init();
-        mcProfiler = Minecraft.getMinecraft().profiler;
     }
     
     @EventHandler

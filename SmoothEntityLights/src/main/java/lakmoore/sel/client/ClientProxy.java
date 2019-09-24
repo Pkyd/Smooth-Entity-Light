@@ -10,6 +10,7 @@ import lakmoore.sel.capabilities.Storage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
+import net.minecraft.profiler.Profiler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fml.client.FMLClientHandler;
@@ -18,7 +19,8 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 public class ClientProxy extends CommonProxy {
-    static Minecraft mcinstance;
+    public static Minecraft mcinstance;
+    public static Profiler mcProfiler;
 
     /**
      * The Keybinding instance to monitor
@@ -28,10 +30,11 @@ public class ClientProxy extends CommonProxy {
     static long nextKeyTriggerTime;
 
     public void preInit(FMLPreInitializationEvent evt) {
+        ClientProxy.mcinstance = FMLClientHandler.instance().getClient();
+
         Config.doConfig(evt.getSuggestedConfigurationFile());
 
         SEL.disabled = false;
-        ClientProxy.mcinstance = FMLClientHandler.instance().getClient();
         SEL.lightValueMap = new HashMap<Class<? extends Entity>, Boolean>();
         SEL.glowValueMap = new HashMap<Class<? extends Entity>, Integer>();
 
@@ -44,6 +47,8 @@ public class ClientProxy extends CommonProxy {
     }
 
     public void init() {
+        mcProfiler = Minecraft.getMinecraft().profiler;
+
         ClientProxy.toggleButton = new KeyBinding("Toggle Smooth Entity Lights", Keyboard.KEY_L, "key.categories.gameplay");        
         ClientProxy.toggleCullingTypeButton = new KeyBinding("Toggle Culling Method", Keyboard.KEY_C, "key.categories.gameplay");        
         
