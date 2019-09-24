@@ -48,6 +48,9 @@ public abstract class WorldSEL extends World {
 				if (y < 0) {
 					y = 0;
 				}
+				if (y > 255) {
+					y = 255;
+				}
 	            float lightPlayer = lc.lights[pos.getX() & 15][y][pos.getZ() & 15];
 	            light = LightUtils.getCombinedLight(lightPlayer, light);
 			}

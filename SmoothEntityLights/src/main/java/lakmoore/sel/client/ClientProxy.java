@@ -24,6 +24,7 @@ public class ClientProxy extends CommonProxy {
      * The Keybinding instance to monitor
      */
     static KeyBinding toggleButton;
+    static KeyBinding toggleCullingTypeButton;    
     static long nextKeyTriggerTime;
 
     public void preInit(FMLPreInitializationEvent evt) {
@@ -43,8 +44,11 @@ public class ClientProxy extends CommonProxy {
     }
 
     public void init() {
-        ClientProxy.toggleButton = new KeyBinding("Toggle Smooth Entity Lights", Keyboard.KEY_L, "key.categories.gameplay");
+        ClientProxy.toggleButton = new KeyBinding("Toggle Smooth Entity Lights", Keyboard.KEY_L, "key.categories.gameplay");        
+        ClientProxy.toggleCullingTypeButton = new KeyBinding("Toggle Culling Method", Keyboard.KEY_C, "key.categories.gameplay");        
+        
         ClientRegistry.registerKeyBinding(ClientProxy.toggleButton);
+        ClientRegistry.registerKeyBinding(ClientProxy.toggleCullingTypeButton);
         SEL.coloredLights = Loader.isModLoaded("easycoloredlights");
     }
 
