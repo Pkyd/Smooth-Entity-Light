@@ -1,6 +1,8 @@
 package lakmoore.sel.capabilities;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import lakmoore.sel.client.EventHandler;
 import lakmoore.sel.client.LightUtils;
@@ -28,10 +30,9 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
  */
 public class DefaultLightSourceCapability implements ICapabilityProvider, ILightSourceCapability {
 	private static Entity thePlayer;
-	private static final float maxDiffNear = 0.01f;
-	private static final float maxDiffFar = 1.4f;
+	private static final float maxDiffNear = 0.04f;	// tuned for a balance between update freq. and smoothness
+	private static final float maxDiffFar = 2.0f;
 	private static final float farDistSq = 1024.0f;
-	private static final int radius = 8;
 
 	protected World world;
 	protected Entity entity;
@@ -58,6 +59,11 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		prevBlock = new BlockPos(prev);
 
 		checkDistanceLOD();
+	}
+
+	@Override
+	public Entity getEntity() {
+		return this.entity;
 	}
 
 	public void addLightSource(BaseAdaptor adaptor) {
@@ -99,8 +105,8 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	 * have changed Coordinates or light level. Returns set of blocks that may need
 	 * re-lighting if something has changed.
 	 */
-	public ArrayList<BlockPos> getBlocksToUpdate() {
-		ArrayList<BlockPos> result = new ArrayList<BlockPos>();
+	public Set<BlockPos> getBlocksToUpdate() {
+		Set<BlockPos> result = new HashSet<BlockPos>();
 		
 		if (entity == null || world == null) {
 			return result;
@@ -122,7 +128,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			
 			if (lightLevel > 0 || prevLight > 0) {
 				// always re-light the old position (think extinguished torches!)
-				result.addAll(LightUtils.getVolumeForRelight(prevBlock, radius));				
+				result.addAll(LightUtils.getVolumeForRelight(prevBlock, SEL.maxLightDist));				
 			}
 
 			BlockPos currentBlock = new BlockPos(current);
@@ -130,7 +136,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			// If we have moved to another block and we are giving off any light
 			if (!currentBlock.equals(prevBlock) && lightLevel > 0) {
 				// re-light the current position
-				result.addAll(LightUtils.getVolumeForRelight(currentBlock, radius));
+				result.addAll(LightUtils.getVolumeForRelight(currentBlock, SEL.maxLightDist));
 			}
 
 			// update the old position to the new position
@@ -146,6 +152,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		return result;
 	}
 
+	
 	public boolean isUnderwater() {
 		return this.underwater;
 	}
@@ -156,7 +163,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			adaptor.kill();
 		}
 		adaptors.clear();
-		EventHandler.blocksToUpdate.addAll(getBlocksToUpdate());
+		SEL.lightWorker.removeSourceEntity(this);
 		entity = null;
 		world = null;
 //		SEL.mcProfiler.endSection();

@@ -1,3 +1,11 @@
+4.0.0 (for MC1.12.2)
+MASSIVE overhaul
+Entity light is now written directly into the VBOs on your graphics card using OpenGL calls
+Light is re-calculated off the main client thread (so does not impact FPS)
+Those updates are batched and used to update the chunk meshes in real time
+Added Quad "flipping", which seems to have always been missing from Minecraft!?
+Entity Light is almost completely "line of sight" and casts strong shadows from any full block (and slabs) 
+
 3.0.6 (for MC1.12.2)
 Added Frustum Culling (for improved performance)
 Currently two methods:  1) Planar Frustum or 2) Vector Dot Product

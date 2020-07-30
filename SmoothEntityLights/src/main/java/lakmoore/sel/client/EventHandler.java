@@ -1,17 +1,15 @@
 package lakmoore.sel.client;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.nio.IntBuffer;
 
-import org.jline.utils.Log;
-import org.lwjgl.util.glu.Project;
+import javax.vecmath.Vector3f;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL15;
 
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
+import lakmoore.sel.capabilities.ILitChunkCache;
+import lakmoore.sel.capabilities.LitChunkCacheCapability;
 import lakmoore.sel.client.adaptors.BrightAdaptor;
 import lakmoore.sel.client.adaptors.CreeperAdaptor;
 import lakmoore.sel.client.adaptors.EntityBurningAdaptor;
@@ -21,37 +19,39 @@ import lakmoore.sel.client.adaptors.MobLightAdaptor;
 import lakmoore.sel.client.adaptors.PartialLightAdaptor;
 import lakmoore.sel.client.adaptors.PlayerOtherAdaptor;
 import lakmoore.sel.client.adaptors.PlayerSelfAdaptor;
-import lakmoore.sel.world.WorldSEL;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.renderer.ActiveRenderInfo;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.ViewFrustum;
+import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.client.renderer.culling.Frustum;
-import net.minecraft.client.renderer.culling.ICamera;
+import net.minecraft.client.renderer.vertex.VertexBuffer;
+import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.monster.EntityCreeper;
-import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
@@ -60,514 +60,568 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class EventHandler {
-	
-	private static boolean forceUpdate = false;
-	private static int cullingMethod = 1;
-	private static ICamera icamera;
-	private Vec3d playerLook;
 
-    /*
-     * Minimum number of milliseconds between entity light updates
-     */
-    private static int updateInterval = 40;
-
-	public static LinkedList<Integer> counts = new LinkedList<Integer>();
-	public static int tickCount = 0;
-	public static int ticksSkippedCount = 0;
-	
-	public static Set<BlockPos> blocksToUpdate = ConcurrentHashMap.newKeySet();
-    //Using a BlockPos to hold ChunkPos - with a Y value!
-	public static Set<BlockPos> chunksToUpdate;
-	
-	public static AtomicInteger entityCount = new AtomicInteger();
-
-	public static int totalBlockCount() {
-		int count = 0;
-		for (Object i : counts.toArray()) {
-			count += (int)i;			
-		}
-		return count;
-	}
-
-	private float farPlaneDistance;
-	private Minecraft mc = ClientProxy.mcinstance;
-	
-    /**
-     * sets up projection, view effects, camera position/rotation
-     */
-    private void setupCameraTransform()
-    {
-        this.farPlaneDistance = (float)(this.mc.gameSettings.renderDistanceChunks * 16);
-        GlStateManager.matrixMode(5889);
-        GlStateManager.loadIdentity();
-        Project.gluPerspective(this.getFOVModifier(), (float)this.mc.displayWidth / (float)this.mc.displayHeight, 0.05F, this.farPlaneDistance * MathHelper.SQRT_2);
-
-        GlStateManager.matrixMode(5888);
-        GlStateManager.loadIdentity();
-
-        Entity entity = this.mc.getRenderViewEntity();
-        float f = entity.getEyeHeight();
-
-        if (entity instanceof EntityLivingBase && ((EntityLivingBase)entity).isPlayerSleeping())
-        {
-            f = (float)((double)f + 1.0D);
-            GlStateManager.translate(0.0F, 0.3F, 0.0F);
-            GlStateManager.rotate(entity.rotationYaw + 180.0F, 0.0F, -1.0F, 0.0F);
-            GlStateManager.rotate(entity.rotationPitch, -1.0F, 0.0F, 0.0F);
-        }
-        else if (this.mc.gameSettings.thirdPersonView > 0)
-        {
-            double d3 = 4.0; // thirdPersonDistancePrev
-
-            float f1 = entity.rotationYaw;
-            float f2 = entity.rotationPitch;
-
-            if (this.mc.gameSettings.thirdPersonView == 2)
-            {
-                f2 += 180.0F;
-                GlStateManager.rotate(180.0F, 0.0F, 1.0F, 0.0F);
-            }
-
-            GlStateManager.rotate(entity.rotationPitch - f2, 1.0F, 0.0F, 0.0F);
-            GlStateManager.rotate(entity.rotationYaw - f1, 0.0F, 1.0F, 0.0F);
-            GlStateManager.translate(0.0F, 0.0F, (float)(-d3));
-            GlStateManager.rotate(f1 - entity.rotationYaw, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(f2 - entity.rotationPitch, 1.0F, 0.0F, 0.0F);
-        }
-        else
-        {
-            GlStateManager.translate(0.0F, 0.0F, 0.05F);
-        }
-
-        float yaw = entity.rotationYaw + 180.0F;
-        float pitch = entity.rotationPitch;
-        float roll = 0.0F;
-        if (entity instanceof EntityAnimal)
-        {
-            EntityAnimal entityanimal = (EntityAnimal)entity;
-            yaw = entityanimal.rotationYawHead + 180.0F;
-        }
-        GlStateManager.rotate(roll, 0.0F, 0.0F, 1.0F);
-        GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
-        GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
-        GlStateManager.translate(0.0F, -f, 0.0F);
-    }
-    
-    /**
-     * Changes the field of view of the player depending on if they are underwater or not
-     */
-    private float getFOVModifier()
-    {
-        Entity entity = this.mc.getRenderViewEntity();
-        float f = this.mc.gameSettings.fovSetting;
-
-        IBlockState iblockstate = ActiveRenderInfo.getBlockStateAtEntityViewpoint(this.mc.world, entity, 1.0f);
-        if (iblockstate.getMaterial() == Material.WATER)
-        {
-            f = f * 60.0F / 70.0F;
-        }
-
-        return f;
-    }
-
-    /* 
-     * Not a great place to put game logic, but the only event I can find where
-     * it is not necessary to re-build the Frustum!
-     */
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent
-    public void afterRender(RenderWorldLastEvent event) {
-//		OFDL.mcProfiler.startSection(OFDL.modId + ":tick");
-        if (
-//        	event.phase == Phase.END 
-//        	&& 
-        	ClientProxy.mcinstance.world != null
-        	&& SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)
-        ) {
-        	
-    		//Check for global lights key press
-            if (
-            	ClientProxy.mcinstance.currentScreen == null 
-            	&& ClientProxy.toggleButton.isPressed()
-                && System.currentTimeMillis() >= ClientProxy.nextKeyTriggerTime
-                && !forceUpdate
-            ) {
-        		//key-repeat delay
-                ClientProxy.nextKeyTriggerTime = System.currentTimeMillis() + 1000l;
-                //toggle the setting
-                SEL.disabled = !SEL.disabled;
-                //player notification
-                ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
-                        "Smooth Entity Lights " + (SEL.disabled ? "off" : "on")));
-                forceUpdate = true;
-                
-            }
+	public void onTick(TickEvent.ClientTickEvent event) {
+		if (event.phase == Phase.END && ClientProxy.mcinstance.world != null
+				&& SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)) {
 
-            if (
-                	ClientProxy.mcinstance.currentScreen == null 
-                	&& ClientProxy.toggleCullingTypeButton.isPressed()
-                    && System.currentTimeMillis() >= ClientProxy.nextKeyTriggerTime
-                ) {
-            		//key-repeat delay
-                    ClientProxy.nextKeyTriggerTime = System.currentTimeMillis() + 1000l;
-                    //toggle the setting
-                    cullingMethod++;
-                    if (cullingMethod > 1) cullingMethod = 0;
-                    //player notification
-                    ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
-                            "Smooth Entity Lights Culling Method = " + (cullingMethod == 1 ? "Frustum" : "Vectors")));
-                    forceUpdate = true;
-                    
-                }
+			// Check for global lights key press
+			if (ClientProxy.mcinstance.currentScreen == null && ClientProxy.toggleButton.isPressed()
+					&& System.currentTimeMillis() >= ClientProxy.nextKeyTriggerTime) {
+				// key-repeat delay
+				ClientProxy.nextKeyTriggerTime = System.currentTimeMillis() + 1000l;
+				// toggle the setting
+				SEL.disabled = !SEL.disabled;
+				// player notification
+				ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(
+						new TextComponentString("Smooth Entity Lights " + (SEL.disabled ? "off" : "on")));
+				if (SEL.disabled) {
+					SEL.lightWorker.shutdown();
+					SEL.forceUpdate = true;
+				} else {
+					SEL.lightWorker.restart();
+				}
+			}
+		}
+	}
 
-            // Check every loaded entity within the frustum
-            // and update any that have light sources
-            // No need to do this more than 25 times per second
-            if (
-            	forceUpdate 
-            	|| (!SEL.disabled && System.currentTimeMillis() - SEL.lastLightUpdateTime > updateInterval)
-            ) {
-            	            	
-            	if (cullingMethod == 1) {
-//                	this.setupCameraTransform();
-                    icamera = new Frustum();
-                    icamera.setPosition(ClientProxy.mcinstance.player.posX, ClientProxy.mcinstance.player.posY + ClientProxy.mcinstance.player.eyeHeight, ClientProxy.mcinstance.player.posZ);
-            	} else {
-            		playerLook = ClientProxy.mcinstance.player.getLookVec();            		
-            	}
-                double radius = 4.5;
-                double maxDistSq = ClientProxy.mcinstance.gameSettings.renderDistanceChunks * ClientProxy.mcinstance.gameSettings.renderDistanceChunks * 256.0;
-                EventHandler.entityCount.set(0);
+	/*
+	 * RenderWorldLastEvent is not a great place to put extra logic, but is the only
+	 * event I can find where it is not necessary to re-build the Frustum on the
+	 * Camera!
+	 */
+	@SideOnly(Side.CLIENT)
+	@SubscribeEvent
+	public void afterRender(RenderWorldLastEvent event) {
+		// ClientProxy.mcProfiler.startSection(SEL.modId + ":afterRender");
+		if (ClientProxy.mcinstance.world != null
+				&& (ClientProxy.mcinstance.currentScreen == null
+						|| !ClientProxy.mcinstance.currentScreen.doesGuiPauseGame())
+				&& SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)
+				&& (SEL.forceUpdate || !SEL.disabled)) {
 
-                // Tick all entities
-				List<Entity> allEntities = ClientProxy.mcinstance.world.loadedEntityList;
-				blocksToUpdate.addAll(
-	            	allEntities.parallelStream()
-	            	.filter(entity -> {            	
-	            		if (!entity.hasCapability(SEL.LIGHT_SOURCE_CAPABILITY, null)) {
-	            			return false;
-	            		}
-	            		if (entity.equals(ClientProxy.mcinstance.player) || entity.isRidingOrBeingRiddenBy(ClientProxy.mcinstance.player)) {
-	            			return true;
-	            		}
-	            		if (entity.getPosition().distanceSq(ClientProxy.mcinstance.player.getPosition()) > maxDistSq) {
-	            			return false;
-	            		}
-	            		
-	            		if (cullingMethod == 1) {
-							AxisAlignedBB axisalignedbb = new AxisAlignedBB(
-						    	entity.posX - radius, 
-						    	entity.posY - radius, 
-						    	entity.posZ - radius, 
-						    	entity.posX + radius, 
-						    	entity.posY + radius, 
-						    	entity.posZ + radius
-						    );
-		                    return icamera.isBoundingBoxInFrustum(axisalignedbb);      	            			
-	            		}
-	            			                    
-	            		Vec3d toEntity = entity.getPositionVector().subtract(ClientProxy.mcinstance.player.getPositionEyes(1f));
-	                    toEntity = toEntity.normalize();
-	                    double result = toEntity.dotProduct(playerLook);
-	                    
-	                    return result > 0.7;
-	                    
-	            	})
-	            	.map(entity -> {
-	            		EventHandler.entityCount.addAndGet(1);
-            			return entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);
-            		})
-			    	// getBlocksToUpdate ticks the source container and returns a list of dirty blocks
-	            	.flatMap(sources -> sources.getBlocksToUpdate().stream())
-	            	.collect(Collectors.toList())
-            	);
-            	            	
-            	// Let's record how much work we are doing
-                counts.add(blocksToUpdate.size());
-                tickCount++;
-                while (counts.size() > 60) {
-                	counts.remove();
-                }
-                
-                //Using BlockPos to hold ChunkPos with a Y value!
-                chunksToUpdate = ConcurrentHashMap.newKeySet();
+			// update the Light Worker with the current Frustum
+			updateFrustum();
 
-                // update all blocks that have been marked dirty since last tick    
-                // and map that to a list of dirty chunks, no duplicates (Set!)
-                chunksToUpdate.addAll(
-                	blocksToUpdate.parallelStream()
-                	.filter(pos -> pos != null)
-                	.map(pos -> {                		
-						int x = pos.getX() >> 4;
-						int z = pos.getZ() >> 4;
-						LightCache lc = LightUtils.lightCache.get(new ChunkPos(x, z));
-						if (lc != null) {
-							int y = pos.getY();
-							if (y < 0) y = 0;
-							if (y > 255) {
-								Log.warn("BlockPos with Y = " + y);
-								y = 255;								
+			// update the Light Worker with current camera position
+			SEL.lightWorker.updateCamera(new Frustum(), event.getPartialTicks(),
+					ClientProxy.mcinstance.gameSettings.renderDistanceChunks);
+
+			// Process the chunk updates that have been queued since last frame
+			SEL.lightWorker.chunksToBeReRendered.forEach(lightCache -> {
+				if (lightCache != null) {
+
+					SEL.lightWorker.chunksToBeReRendered.remove(lightCache);
+
+//						ChunkPos chunkPos = lightCache.getChunk().getPos();
+//						if (chunkPos.getY()==0) {
+//							System.out.println("******** Chunk at " + chunkPos.toString() + " ********");									
+//						}
+//						if (chunkPos.getY()==0) {
+//							System.out.println("******** Chunk at " + chunkPos.toString() + " ********");
+//						}
+
+					lightCache.getDirtyRenderChunkYs().forEach(y -> {
+
+						RenderChunk renderChunk = lightCache.getRenderChunk(y);
+						if (renderChunk != null) {
+
+							lightCache.reLightDone(y);
+
+							// int stride = 7;
+							// Vertex is:
+							// 0 <= X (Float - 4 bytes)
+							// 1 <= Y (Float - 4 bytes)
+							// 2 <= Z (Float - 4 bytes)
+							// 3 <= Color RGBA (4 x Unsigned Byte)
+							// 4 <= Texture Co-ord "U" (Float - 4 bytes)
+							// 5 <= Texture Co-ord "V" (Float - 4 bytes)
+							// 6 <= Light level (2 x Short) (also a texture co-ord)
+
+							for (BlockRenderLayer layer : BlockRenderLayer.values()) {
+								VertexBuffer vbo = renderChunk.getVertexBufferByLayer(layer.ordinal());
+
+								vbo.bindBuffer();
+								int byteCount = GL15.glGetBufferParameteri(OpenGlHelper.GL_ARRAY_BUFFER,
+										GL15.GL_BUFFER_SIZE);
+
+								if (byteCount > 0) {
+									// int buffers stored as bytes
+									int integerCount = byteCount / 4;
+
+									IntBuffer data = BufferUtils.createIntBuffer(integerCount);
+
+									// Fetch the Vertex Buffer from the GPU
+									GL15.glGetBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+
+									boolean changed = false;
+									int putIndex = 0;
+									// System.out.println("******** Chunk at " + chunkPos.toString() + " "
+									// + layer.name() + " ********");
+
+									int vertCount = integerCount / 7; // each vertex is 7 integers of data (28
+																		// bytes)
+									int quadCount = vertCount / 4; // each quad is four vertices (duh!)
+									
+
+									for (int q = 0; q < quadCount; q++) {
+										int[][] thisQuad = new int[4][];
+										float[][] position = new float[4][3];
+										float[][] normal = new float[4][3];
+										boolean quadChanged = false;
+										
+										for (int v = 0; v < 4; v++) {
+											thisQuad[v] = new int[9];
+											data.get(thisQuad[v], 0, 7);
+											
+											position[v][0] = Float.intBitsToFloat(thisQuad[v][0]);
+											position[v][1] = Float.intBitsToFloat(thisQuad[v][1]);
+											position[v][2] = Float.intBitsToFloat(thisQuad[v][2]);											
+										}
+										
+										
+								        float centerX = 0f;
+								        float centerY = 0f;
+								        float centerZ = 0f;
+							            Vector3f v1 = new Vector3f(position[3]);
+							            Vector3f t = new Vector3f(position[1]);
+							            Vector3f v2 = new Vector3f(position[2]);
+							            v1.sub(t);
+							            t.set(position[0]);
+							            v2.sub(t);
+							            v1.cross(v2, v1);
+							            v1.normalize();								        
+								        for(int v = 0; v < 4; v++)
+								        {
+								        	centerX += position[v][0];
+								        	centerY += position[v][1];
+								        	centerZ += position[v][2];
+							                normal[v][0] = v1.x;
+							                normal[v][1] = v1.y;
+							                normal[v][2] = v1.z;
+								        }
+								        centerX = centerX / 4.0f;
+								        centerY = centerY / 4.0f;
+								        centerZ = centerZ / 4.0f;
+								        
+										BlockPos baseBlockPos = lightCache.getChunk().getPos().getBlock(0, y << 4, 0);
+										
+						                BlockPos blockPos = new BlockPos(
+						                    	(float)baseBlockPos.getX() + centerX - normal[0][0] * 0.1f, 
+						                    	(float)baseBlockPos.getY() + centerY - normal[0][1] * 0.1f, 
+						                    	(float)baseBlockPos.getZ() + centerZ - normal[0][2] * 0.1f
+						            	);
+						                							                
+						                IBlockState blockState = ClientProxy.mcinstance.world.getBlockState(blockPos);
+
+										for (int v = 0; v < 4; v++) {
+											int yChunk = y;
+																		                
+											int mcLight = thisQuad[v][6];
+							                short selLight;
+							                if (blockState.isFullCube()) {
+												// Vertices range from 0 to 16 (not 0 to 15!!)
+												float vertX = position[v][0];
+												float vertY = position[v][1];
+												float vertZ = position[v][2];
+
+												ILitChunkCache thisLitChunkCache = lightCache;
+
+												if (vertX > 16 - 1e-6) {
+													vertX -= 16;
+													thisLitChunkCache = LightUtils.getLitChunkCache(
+															ClientProxy.mcinstance.world, lightCache.getChunk().x + 1,
+															lightCache.getChunk().z);
+												}
+
+												if (vertY > 16 - 1e-6) {
+													if (yChunk == 15) {
+														vertY = 15f;
+													} else {
+														vertY -= 16;
+														yChunk += 1;
+													}
+												}
+
+												if (vertZ > 16 - 1e-6) {
+													vertZ -= 16;
+													thisLitChunkCache = LightUtils.getLitChunkCache(
+															ClientProxy.mcinstance.world, thisLitChunkCache.getChunk().x,
+															thisLitChunkCache.getChunk().z + 1);
+												}
+
+												selLight = thisLitChunkCache.getVertexLight(vertX,
+														(16 * yChunk) + vertY, vertZ);
+							                } else {
+							                	blockPos = new BlockPos(
+								                    	(float)baseBlockPos.getX() + centerX + normal[v][0] * 0.1f, 
+								                    	(float)baseBlockPos.getY() + centerY + normal[v][1] * 0.1f, 
+								                    	(float)baseBlockPos.getZ() + centerZ + normal[v][2] * 0.1f
+								            	);
+							                	ILitChunkCache thisLitChunkCache = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, blockPos.getX() >> 4, blockPos.getZ() >> 4);
+							                	selLight = (short)Math.max(
+							                			thisLitChunkCache.getBlockLight(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
+							            				16f * thisLitChunkCache.getChunk().getLightFor(EnumSkyBlock.BLOCK, blockPos)
+						            			);            	            	
+							                }
+											
+											int newLight = (mcLight & 0xFFFF0000) | selLight;
+
+											if (mcLight != newLight) {
+												thisQuad[v][6] = newLight;
+												quadChanged = true;
+											}
+											thisQuad[v][7] = selLight; // Math.max(selLight, (mcLight & 0xFFFF0000) >> 16);
+
+										}
+
+										if (quadChanged) {
+											int[] order = { 0, 1, 2, 3 };
+											int[] flipped = { 1, 2, 3, 0 };
+
+											// re-order the triangles in the quad so brightness is always blended
+											// smoothly
+											if (
+													(
+														thisQuad[3][7] - thisQuad[0][7]
+													)
+												<
+													(
+														thisQuad[2][7] - thisQuad[1][7]
+													)
+											) {
+												order = flipped;
+											}
+
+											data.position(putIndex);
+											// thisQuad contains 4 vertices of data
+											for (int v = 0; v < 4; v++) {
+												data.put(thisQuad[order[v]], 0, 7);
+											}
+											changed = true;
+										}
+
+										putIndex += 28;
+
+									}
+
+									if (changed) {
+										data.rewind();
+										GL15.glBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+									}
+
+								}
+
+								vbo.unbindBuffer();
+
 							}
-					        lc.lights[pos.getX() & 15][y][pos.getZ() & 15] = LightUtils.getEntityLightLevel(ClientProxy.mcinstance.world, pos);
-							return new BlockPos(x, pos.getY() >> 4, z);
-						}                	
-						return null;
-	                })
-                	.filter(pos -> pos != null)
-	                .collect(Collectors.toList())
-                );
-                		                		
-                blocksToUpdate.clear();
-                                 
-                // mark for update the chunks that contain dirty blocks
-                chunksToUpdate.parallelStream().forEach(new Consumer<BlockPos>() {
-					@Override
-					public void accept(BlockPos chunkPos) {
-						int x = chunkPos.getX() << 4;
-						int y = chunkPos.getY() << 4;
-						int z = chunkPos.getZ() << 4;
-						x++;
-						y++;
-						z++;
-						// Marks surrounding blocks too!
-	    				ClientProxy.mcinstance.renderGlobal.markBlockRangeForRenderUpdate(x, y, z, x, y, z);      
-					}
-				});
+						}
 
-        		forceUpdate = false;
-                
-                SEL.lastLightUpdateTime = System.currentTimeMillis();
-            } else {
-            	if (!SEL.disabled) {
-            		ticksSkippedCount++;
-            	}
-            }
+					});
+				}
+			});
 
-        }
-//        SEL.mcProfiler.endSection();
-    }
-	
-	// We used to use ForgeEvents, but something was causing concurrency issues!
-//	@SideOnly(Side.CLIENT)
-//	@SubscribeEvent
-//    public void onBlockBreak(BlockEvent.BreakEvent event) {
-//		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
-//	}
-//
-//	@SideOnly(Side.CLIENT)
-//	@SubscribeEvent
-//    public void onBlockPlace(BlockEvent.PlaceEvent event) {
-//		FMLEventHandler.blocksToUpdate.addAll(LightUtils.getVolumeForRelight(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ(), 8));
-//	}
+			if (SEL.lightWorker.isShutdown() && SEL.lightWorker.chunksToBeReRendered.size() == 0) {
+				SEL.forceUpdate = false;
+			}
+		}
 
-    @SubscribeEvent
+		// ClientProxy.mcProfiler.endSection();
+	}
+
+	@SubscribeEvent
+	public void onDebugOverlay(RenderGameOverlayEvent.Text event) {
+		if (Minecraft.getMinecraft().gameSettings.showDebugInfo) {
+			// There used to be some interesting stats to look at!
+			event.getLeft().add("DL " + (SEL.disabled ? "OFF" : "ON"));
+
+			// Light levels
+			Entity player = Minecraft.getMinecraft().player;
+			World world = Minecraft.getMinecraft().world;
+			BlockPos pos = player.getPosition();
+			IBlockState state = world.getBlockState(pos);
+			ILitChunkCache litChunkCache = LightUtils.getLitChunkCache(world, pos.getX() >> 4, pos.getZ() >> 4);
+
+			event.getLeft().add("Vanilla BL: " + state.getLightValue(world, pos) + " SEL: "
+					+ (litChunkCache != null && SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)
+							? Math.round(
+									10f * 16f * LightUtils.getEntityLightLevel(world, pos, event.getPartialTicks()))
+									/ 10f
+									+ " B-Cache: "
+									+ Math.round(10f * litChunkCache.getBlockLight(pos.getX(), pos.getY(), pos.getZ()))
+											/ 10f
+									+ " V-Cache: "
+									+ Math.round(10f * litChunkCache.getVertexLight(pos.getX(), pos.getY(), pos.getZ()))
+											/ 10f
+							: "Disabled for this dimension"));
+			event.getLeft()
+					.add("SEL avg blocks re-lit: " + Math.round(10f * SEL.lightWorker.averageBlockCount()) / 10f
+							+ " skipped ticks: " + SEL.lightWorker.ticksSkippedCount + " E: "
+							+ SEL.lightWorker.entityCount.get());
+
+//			DirtyRayTrace rayTrace = new DirtyRayTrace(world);
+//			RayTraceResult rtr = ClientProxy.mcinstance.player.rayTrace(40f, event.getPartialTicks());
+//			String message = "";
+//			if (rtr != null) {
+//				message = "Opacity: ";
+//				message += rayTrace.rayTraceForOpacity(
+//						ClientProxy.mcinstance.player.getPositionEyes(event.getPartialTicks()), rtr.hitVec);
+//			}
+//			event.getLeft().add(message);
+
+		}
+	}
+
+	@SubscribeEvent
 	@SideOnly(Side.CLIENT)
-    public void onChunkLoad(ChunkEvent.Load event)
-    {
-    	if (event.getWorld() instanceof WorldSEL && SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)) {
-    		ChunkPos chunkPos = event.getChunk().getPos();
-    		if (!LightUtils.lightCache.containsKey(chunkPos)) {
-    			LightUtils.lightCache.put(chunkPos, new LightCache());					
-    		}
-    	}
-    }
+	public void onAttachChunkCapabilities(AttachCapabilitiesEvent<Chunk> event) {
+		Chunk chunk = event.getObject();
+		if (chunk == null) {
+			return;
+		}
 
-    @SubscribeEvent
+		LitChunkCacheCapability cap = new LitChunkCacheCapability();
+		cap.setChunk(chunk);
+		event.addCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY_NAME, cap);
+	}
+
+	@SubscribeEvent
 	@SideOnly(Side.CLIENT)
-    public void onChunkUnload(ChunkEvent.Unload event)
-    {
-    	if(event.getWorld() instanceof WorldSEL) {
-    		LightUtils.lightCache.remove(event.getChunk().getPos());		
-    	}
-    }
+	public void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
+		Entity entity = event.getObject();
+		if (entity == null || entity.isDead)
+			return;
 
-    @SubscribeEvent
-    public void onDebugOverlay(RenderGameOverlayEvent.Text event)
-    {    	
-        if(Minecraft.getMinecraft().gameSettings.showDebugInfo)
-        {
-    		//There used to be some interesting stats to look at!
-    		event.getLeft().add("DL " + (SEL.disabled ? "OFF" : "ON"));
-    		// Light levels
-    		Entity player = Minecraft.getMinecraft().player;
-    		World world = Minecraft.getMinecraft().world;
-    		BlockPos pos = player.getPosition();
-    		IBlockState state = world.getBlockState(pos);
-    		ChunkPos coords = new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4);
-    		event.getLeft().add(
-    			"Vanilla BL: " + state.getLightValue(world, pos) 
-    			+ " SEL: " 
-    			+ (
-    				LightUtils.lightCache != null 
-    				&& LightUtils.lightCache.get(coords) != null 
-    				?	
-    					Math.round(10f * LightUtils.getEntityLightLevel(world, pos)) / 10f
-    					+ " Cached: " + Math.round(10f * LightUtils.lightCache.get(coords).lights[pos.getX() & 15][MathHelper.clamp(pos.getY(), 0, 255)][pos.getZ() & 15]) / 10f
-	    			:
-	    				"Disabled for this dimension"
-	    		)
-    		);
-    		event.getLeft().add(
-    			"SEL avg blocks re-lit: " + Math.round(10f * EventHandler.totalBlockCount() / EventHandler.counts.size()) / 10f
-    			+ " skipped ticks: " + EventHandler.ticksSkippedCount
-    			+ " E: " + EventHandler.entityCount.get()
-    		);
-        }
-    } 
-    
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event)
-    {
-        Entity entity = event.getObject();
-        if(entity == null || !entity.isEntityAlive())
-            return;
+		World world = entity.getEntityWorld();
+		if (world == null || !world.isRemote)
+			return;
 
-        World world = entity.getEntityWorld();
-        if(world == null || !world.isRemote)
-            return;
+		// Don't even add light sources to Entities in blacklisted dimensions
+		if (!SEL.enabledForDimension(entity.dimension)) {
+			return;
+		}
 
-        // Don't even add light sources to Entities in blacklisted dimensions
-        if (!SEL.enabledForDimension(entity.dimension)) {
-        	return;
-        }
-        
-        DefaultLightSourceCapability sources = new DefaultLightSourceCapability();
-        sources.init(entity, world);
+		DefaultLightSourceCapability sources = new DefaultLightSourceCapability();
+		sources.init(entity, world);
 
-        if (entity instanceof EntityItem)
-        {
-            if(!Config.lightDroppedItems)
-                return;
+		if (entity instanceof EntityItem) {
+			if (!Config.lightDroppedItems)
+				return;
 
-            EntityItemAdaptor adaptor = new EntityItemAdaptor((EntityItem)entity);
-            sources.addLightSource(adaptor);
-        }
-        else if (entity instanceof EntityLivingBase && !(entity instanceof EntityPlayer))
-        {
-            int minLight = 0;
-            boolean catchesFire = false;
+			EntityItemAdaptor adaptor = new EntityItemAdaptor((EntityItem) entity);
+			sources.addLightSource(adaptor);
+		} else if (entity instanceof EntityLivingBase && !(entity instanceof EntityPlayer)) {
+			int minLight = 0;
+			boolean catchesFire = false;
 
-            if (Config.lightBurningEntities)
-            {
-                if (!SEL.lightValueMap.containsKey(entity.getClass()))
-                {
-                    boolean value = Config.getMobFire(entity.getClass().getSimpleName());
-                    
-                    SEL.lightValueMap.put(entity.getClass(), value);
-                    catchesFire = value;
-                }
-                else
-                {
-                    catchesFire = SEL.lightValueMap.get(entity.getClass());
-                }
-            }
+			if (Config.lightBurningEntities) {
+				if (!SEL.lightValueMap.containsKey(entity.getClass())) {
+					boolean value = Config.getMobFire(entity.getClass().getSimpleName());
 
-            if (Config.lightGlowingEntities)
-            {
-                if (!SEL.glowValueMap.containsKey(entity.getClass()))
-                {
-                    int value = Config.getMobGlow(entity);
-                    SEL.glowValueMap.put(entity.getClass(), value);
-                    minLight = value;
-                }
-                else
-                {
-                    minLight = SEL.glowValueMap.get(entity.getClass());
-                }
+					SEL.lightValueMap.put(entity.getClass(), value);
+					catchesFire = value;
+				} else {
+					catchesFire = SEL.lightValueMap.get(entity.getClass());
+				}
+			}
 
-            }           
+			if (Config.lightGlowingEntities) {
+				if (!SEL.glowValueMap.containsKey(entity.getClass())) {
+					int value = Config.getMobGlow(entity);
+					SEL.glowValueMap.put(entity.getClass(), value);
+					minLight = value;
+				} else {
+					minLight = SEL.glowValueMap.get(entity.getClass());
+				}
 
-            if (catchesFire)
-            {
-                EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
-                adaptor.minLight = minLight;
-                sources.addLightSource(adaptor);
-            }
-            else if (minLight > 0)
-            {
-                BrightAdaptor adaptor = new BrightAdaptor(entity, minLight);
-                sources.addLightSource(adaptor);
-            }
+			}
 
-            if (Config.lightMobEquipment)
-            {
-                MobLightAdaptor adaptor = new MobLightAdaptor((EntityLivingBase)entity);
-                sources.addLightSource(adaptor);
-            }
-            
-            if (Config.lightChargingCreepers && entity instanceof EntityCreeper) {
-            	CreeperAdaptor adaptor = new CreeperAdaptor((EntityCreeper)entity);
-            	sources.addLightSource(adaptor);
-            }
+			if (catchesFire) {
+				EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
+				adaptor.minLight = minLight;
+				sources.addLightSource(adaptor);
+			} else if (minLight > 0) {
+				BrightAdaptor adaptor = new BrightAdaptor(entity, minLight);
+				sources.addLightSource(adaptor);
+			}
 
-        }    
-        else if (entity instanceof EntityArrow || entity instanceof EntityFireball)
-        {
-            if(!Config.lightFlamingArrows)
-                return;
+			if (Config.lightMobEquipment) {
+				MobLightAdaptor adaptor = new MobLightAdaptor((EntityLivingBase) entity);
+				sources.addLightSource(adaptor);
+			}
 
-            EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
-            sources.addLightSource(adaptor);
-        }
-        else if (entity instanceof EntityXPOrb)
-        {
-            if(!Config.lightXP)
-                return;
+			if (Config.lightChargingCreepers && entity instanceof EntityCreeper) {
+				CreeperAdaptor adaptor = new CreeperAdaptor((EntityCreeper) entity);
+				sources.addLightSource(adaptor);
+			}
 
-            BrightAdaptor adaptor = new BrightAdaptor(entity, 10);
-            sources.addLightSource(adaptor);
-        }
-        else if (entity instanceof EntityOtherPlayerMP)
-        {
-            if(!Config.lightOtherPlayers)
-                return;
+		} else if (entity instanceof EntityArrow || entity instanceof EntityFireball) {
+			if (!Config.lightFlamingArrows)
+				return;
 
-            PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP)entity);
-            sources.addLightSource(adaptor);
-        }
-        else if (entity instanceof EntityPlayerSP)
-        {
-            if (Config.lightFloodLight)
-            {
-                FloodLightAdaptor adaptor = new FloodLightAdaptor(entity, Config.simpleMode);
-                sources.addLightSource(adaptor);
-            }
+			EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
+			sources.addLightSource(adaptor);
+		} else if (entity instanceof EntityXPOrb) {
+			if (!Config.lightXP)
+				return;
 
-            if (!Config.lightThisPlayer)
-                return;
+			BrightAdaptor adaptor = new BrightAdaptor(entity, 10);
+			sources.addLightSource(adaptor);
+		} else if (entity instanceof EntityOtherPlayerMP) {
+			if (!Config.lightOtherPlayers)
+				return;
 
-            PlayerSelfAdaptor adaptor = new PlayerSelfAdaptor((EntityPlayer)entity);
-            sources.addLightSource(adaptor);
+			PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP) entity);
+			sources.addLightSource(adaptor);
+		} else if (entity instanceof EntityPlayerSP) {
+			if (Config.lightFloodLight) {
+				FloodLightAdaptor adaptor = new FloodLightAdaptor(entity, Config.simpleMode);
+				sources.addLightSource(adaptor);
+			}
 
-            checkForOptifine();
-        }
-        else if (entity instanceof FloodLightAdaptor.DummyEntity)
-        {
-            if (Config.lightFloodLight)
-            {
-            	PartialLightAdaptor adaptor = new PartialLightAdaptor(entity);
-                sources.addLightSource(adaptor);        		    			
-            }
-        }
-        else
-        {
-            //Do nothing
-        }
-        
-        if (sources.hasSources()) {
-            event.addCapability(SEL.LIGHT_SOURCE_CAPABILITY_NAME, sources);
-        }
+			if (!Config.lightThisPlayer)
+				return;
 
-    }
-    
-    private void checkForOptifine() 
-    {
-        if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride)
-        {
-            ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString("Optifine is loaded.  Disabling Smooth Entity Light.  Check the config file to override."));         
-            SEL.disabled = true;
-        }
-    }
-	
+			PlayerSelfAdaptor adaptor = new PlayerSelfAdaptor((EntityPlayer) entity);
+			sources.addLightSource(adaptor);
+
+			checkForOptifine();
+		} else if (entity instanceof FloodLightAdaptor.DummyEntity) {
+			if (Config.lightFloodLight) {
+				PartialLightAdaptor adaptor = new PartialLightAdaptor(entity);
+				sources.addLightSource(adaptor);
+			}
+		} else {
+			// Do nothing
+		}
+
+		if (sources.hasSources()) {
+			event.addCapability(SEL.LIGHT_SOURCE_CAPABILITY_NAME, sources);
+			SEL.lightWorker.addSourceEntity(sources);
+		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void onEntityJoinWorld(EntityJoinWorldEvent event) {
+		if (event.getEntity().equals(ClientProxy.mcinstance.player) && SEL.lightWorker != null) {
+			SEL.lightWorker.setPlayer(ClientProxy.mcinstance.player);
+			updateFrustum();
+		}
+	}
+
+	private void updateFrustum() {
+		ViewFrustum viewFrustum = null;
+		try {
+			viewFrustum = (ViewFrustum) ClientProxy.viewFrustumField.get(ClientProxy.mcinstance.renderGlobal);
+			SEL.lightWorker.updateFrustum(viewFrustum);
+		} catch (Exception e) {
+			System.out.println(e.toString());
+		}
+	}
+
+	private void checkForOptifine() {
+		if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride) {
+			ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
+					"Optifine is loaded.  Disabling Smooth Entity Light.  Check the config file to override."));
+			SEL.disabled = true;
+		}
+	}
+
+	// Vertex (4 per quad)
+	// Position = 3 floats
+	// Brightness
+	// Color
+	// Color
+	// Color
+	// Color
+	// Position
+	private void readState(BufferBuilder.State state, BlockPos pos) {
+		VertexFormat format = state.getVertexFormat();
+		int intSize = format.getIntegerSize();
+		int vertexNum = 0;
+		int[] rawInts = state.getRawBuffer();
+		int vertexCount = state.getVertexCount();
+
+		float x;
+		float y;
+		float z;
+
+		while (vertexNum < vertexCount) {
+			int iStart = (vertexNum * intSize);
+
+			// String result = "Vertex Data: ";
+			// for (int i = 0; i < intSize; i++) {
+			// result += String.format("0x%08x", rawInts[iStart + i]) + " ";
+			// }
+			// System.out.println(result);
+
+			Vector3f vPos = getVertexPos(rawInts, vertexNum);
+			int iX = iStart;
+			int iY = iX + 1;
+			int iZ = iY + 1;
+			int iC = iStart + 3;// format.getColorOffset() / 4;
+			int colourR = rawInts[iC];
+			int colourG = rawInts[iC + 1];
+			int colourB = rawInts[iC + 2];
+			// rawInts[iC] &= 0x77FF7700;
+
+			String colourRs = String.format("0x%08x", colourR);
+			String colourGs = String.format("0x%08x", colourG);
+			String colourBs = String.format("0x%08x", colourB);
+			x = Float.intBitsToFloat(rawInts[iX]); // pos.getX() +
+			y = Float.intBitsToFloat(rawInts[iY]); // pos.getY() + - ClientProxy.mcinstance.player.eyeHeight;
+			z = Float.intBitsToFloat(rawInts[iZ]); // pos.getZ() +
+
+			// rawInts[iY] = Float.floatToIntBits(y - 0.1f);
+			// System.out.println("Offset = "+ pos.getX() + ", " + pos.getY() + ", " +
+			// pos.getZ() +" Found pos: " + x + ", " + y + ", " + z + " with Colour=" +
+			// colour);
+
+			// System.out.println("Offset = " + vPos.toString() + " with Colour= " +
+			// colourRs + " " + colourGs + " " + colourBs);
+
+			// if (ClientProxy.mcinstance.player.getPosition().distanceSq(new Vec3i(x, y,
+			// z)) < 2.0) {
+			// System.out.println("boom");
+			// }
+
+			vertexNum++;
+		}
+
+	}
+
+	private static Vector3f getVertexPos(int[] data, int vertex) {
+		int idx = vertex * 7;
+
+		float x = Float.intBitsToFloat(data[idx]);
+		float y = Float.intBitsToFloat(data[idx + 1]);
+		float z = Float.intBitsToFloat(data[idx + 2]);
+
+		return new Vector3f(x, y, z);
+	}
+
+	public static void putQuadColor(BufferBuilder renderer, BakedQuad quad, int color) {
+		float cb = color & 0xFF;
+		float cg = (color >>> 8) & 0xFF;
+		float cr = (color >>> 16) & 0xFF;
+		float ca = (color >>> 24) & 0xFF;
+		VertexFormat format = quad.getFormat();
+		int size = format.getIntegerSize();
+		int offset = format.getColorOffset() / 4; // assumes that color is aligned
+		for (int i = 0; i < 4; i++) {
+			int vc = quad.getVertexData()[offset + size * i];
+			float vcr = vc & 0xFF;
+			float vcg = (vc >>> 8) & 0xFF;
+			float vcb = (vc >>> 16) & 0xFF;
+			float vca = (vc >>> 24) & 0xFF;
+			int ncr = Math.min(0xFF, (int) (cr * vcr / 0xFF));
+			int ncg = Math.min(0xFF, (int) (cg * vcg / 0xFF));
+			int ncb = Math.min(0xFF, (int) (cb * vcb / 0xFF));
+			int nca = Math.min(0xFF, (int) (ca * vca / 0xFF));
+			renderer.putColorRGBA(renderer.getColorIndex(4 - i), ncr, ncg, ncb, nca);
+		}
+	}
+
 }

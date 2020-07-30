@@ -63,10 +63,10 @@ public class MobLightAdaptor extends BaseAdaptor
 	@Override
 	public int getLightLevel()
 	{            
-		// infernal mobs yay
+		// atomic stryker's infernal mobs - yay
 		if (entity.getEntityData().getString("InfernalMobsMod").length() > 0)
 		{
-			return 15;
+			return 10;
 		}
 		else
 			return getEquipmentLightLevel((EntityLivingBase)entity);

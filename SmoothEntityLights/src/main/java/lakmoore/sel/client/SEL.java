@@ -1,13 +1,13 @@
 package lakmoore.sel.client;
 
 import java.util.HashMap;
+import java.util.concurrent.ForkJoinPool;
 
 import org.apache.logging.log4j.Logger;
 
 import lakmoore.sel.capabilities.ILightSourceCapability;
-import net.minecraft.client.Minecraft;
+import lakmoore.sel.capabilities.ILitChunkCache;
 import net.minecraft.entity.Entity;
-import net.minecraft.profiler.Profiler;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
@@ -36,10 +36,15 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 public class SEL {
     public final static String modId = "sel";
 
+    // main "worker" thread
+	public static LightWorker lightWorker;
+
     // Global off-switch
     public static boolean disabled;
-    static long lastLightUpdateTime;
-    static final int maxSearchDist = 8;
+	public static boolean forceUpdate = false;
+
+    public static final int maxLightDist = 12;
+    public static final int maxLightDistSq = maxLightDist * maxLightDist;
 
     /**
      * whether or not the colored lights mod is present
@@ -64,10 +69,15 @@ public class SEL {
     public static Capability<ILightSourceCapability> LIGHT_SOURCE_CAPABILITY = null;
     public static ResourceLocation LIGHT_SOURCE_CAPABILITY_NAME = new ResourceLocation(SEL.modId, "SELSourceCap");
 
+    @CapabilityInject(ILitChunkCache.class)
+    public static Capability<ILitChunkCache> LIT_CHUNK_CACHE_CAPABILITY = null;
+    public static ResourceLocation LIT_CHUNK_CACHE_CAPABILITY_NAME = new ResourceLocation(SEL.modId, "SELLitChunkCacheCap");
+
     @EventHandler
     public void preInit(FMLPreInitializationEvent evt) {
         log = evt.getModLog();
         proxy.preInit(evt);
+        log.info("No. of cores available to JVM (should be one less than CPU count): " + ForkJoinPool.getCommonPoolParallelism());
     }
 
     @EventHandler

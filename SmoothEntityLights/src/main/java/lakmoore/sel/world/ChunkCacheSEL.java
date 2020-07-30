@@ -1,16 +1,15 @@
 package lakmoore.sel.world;
 
-import lakmoore.sel.client.LightCache;
+import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.ChunkCache;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class ChunkCacheSEL extends ChunkCache {
+	
+	World world;
 
 	public ChunkCacheSEL(
 		World world, 
@@ -19,6 +18,7 @@ public class ChunkCacheSEL extends ChunkCache {
 		int diffSize
 	) {
 	    super(world, posFrom, posTo, diffSize);
+	    this.world = world;
 	}
 	
 	@Override
@@ -32,18 +32,14 @@ public class ChunkCacheSEL extends ChunkCache {
 		// Y = BlockLight
 		if (
         	!SEL.disabled   							// Lights are not disabled
-        	&& (light & 0xF0) < 0xF0					// Block light is not already at max
+        	&& (light & 0xFF) < 0xF0					// Block light is not already at max
         	&& !this.getBlockState(pos).isOpaqueCube()	// Block needs lighting
 //        	&& SEL.enabledForDimension(Minecraft.getMinecraft().thePlayer.dimension)
         ) {  
-			LightCache lc = LightUtils.lightCache.get(new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4));
+			ILitChunkCache lc = LightUtils.getLitChunkCache(world, pos.getX() >> 4, pos.getZ() >> 4);
 			if (lc != null) {
-				int y = pos.getY();
-				if (y < 0) {
-					y = 0;
-				}
-				float lightPlayer = lc.lights[pos.getX() & 15][y][pos.getZ() & 15];
-	            light = LightUtils.getCombinedLight(lightPlayer, light);
+//				short lightPlayer = lc.getBlockLight(pos.getX(), pos.getY(), pos.getZ());
+//	            light = LightUtils.getCombinedLight(lightPlayer, light);
 			}					
         }	
 		

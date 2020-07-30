@@ -1,7 +1,5 @@
 package lakmoore.sel.world;
 
-import java.util.ArrayList;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -20,166 +18,155 @@ public class DirtyRayTrace {
 	}
 
 	/*
-	 * Return a list of all non-air blocks between the start and end
-	 * Do NOT return the block at "start"
+	 * Return the total opacity of intersected blocks along the ray
 	 */
-	public ArrayList<Block> rayTraceAllBlocks(Vec3d start, Vec3d end) {
-
-		ArrayList<Block> result = new ArrayList<Block>();
-
-		if (!Double.isNaN(start.x) && !Double.isNaN(start.y) && !Double.isNaN(start.z)) {
-			if (!Double.isNaN(end.x) && !Double.isNaN(end.y) && !Double.isNaN(end.z)) {
-				
-				BlockPos endBlock = new BlockPos(end);
-				BlockPos thisBlock = new BlockPos(start);				
-				Vec3d currentPos = new Vec3d(start.x, start.y, start.z);
-				
-				while (!thisBlock.equals(endBlock)) {
-					RayTraceResult rtr = blockRayTrace(thisBlock, currentPos, end);
-
-					if (rtr == null) {
-						break;
-					}
-
-					currentPos = rtr.hitVec;
-					thisBlock = rtr.getBlockPos();
-					
-					// Get the block we hit
-					IBlockState state = world.getBlockState(thisBlock);
-					if (state != null) {
-						Block block = state.getBlock();
-						if (block != null && block != Blocks.AIR) {
-							result.add(block);
-						}						
-					}
-				}
-			}
-		}
-		return result;
-	}
-
-	/*
-	 * Return the total opacity of the blocks along the ray
-	 * Do NOT consider the block at "start"
-	 */
-	public int rayTraceForOpacity(Vec3d start, Vec3d end) {
+	public int rayTraceForOpacity(Vec3d startPos, Vec3d endPos) {
+		
+		// start and end Pos could be anywhere, but endPos is probably a Vertex
 
 		int result = 0;
 
-		if (!Double.isNaN(start.x) && !Double.isNaN(start.y) && !Double.isNaN(start.z)) {
-			if (!Double.isNaN(end.x) && !Double.isNaN(end.y) && !Double.isNaN(end.z)) {
+		if (!Double.isNaN(startPos.x) && !Double.isNaN(startPos.y) && !Double.isNaN(startPos.z)) {
+			if (!Double.isNaN(endPos.x) && !Double.isNaN(endPos.y) && !Double.isNaN(endPos.z)) {
 				
-				BlockPos endBlock = new BlockPos(end);
-				BlockPos thisBlock = new BlockPos(start);				
-				Vec3d currentPos = new Vec3d(start.x, start.y, start.z);
+				Vec3d currentPos = new Vec3d(startPos.x, startPos.y, startPos.z);
+				RayTraceResult rtr;
+				boolean sameBlock = false;
 				
-				while (!thisBlock.equals(endBlock) && result < 15) {
-					RayTraceResult rtr = blockRayTrace(thisBlock, currentPos, end);
-
-					if (rtr == null) {
-						break;
-					}
-
-					currentPos = rtr.hitVec;
-					thisBlock = rtr.getBlockPos();
+				do {
+					rtr = blockRayTrace(currentPos, endPos);
 					
-					// Get the block we hit
-					IBlockState state = world.getBlockState(thisBlock);
-					if (state != null) {
-						Block block = state.getBlock();
-						if (block != null && block != Blocks.AIR) {
-							result += state.getLightOpacity(world, thisBlock);
-						}						
+					if (rtr != null) {												
+						currentPos = rtr.hitVec;
+
+						BlockPos thisBlock = rtr.getBlockPos();
+						
+						// Get the block we hit
+						IBlockState state = world.getBlockState(thisBlock);
+						if (state != null) {
+							Block block = state.getBlock();
+							if (block != null && block != Blocks.AIR) {
+								result += state.getLightOpacity(world, thisBlock);
+							}						
+						}													
+
+						sameBlock = (new BlockPos(currentPos)).equals(new BlockPos(endPos));
 					}
-				}
+
+				} while (result < 15 && rtr != null && !sameBlock);
 			}
 		}
-		return Math.min(15, result);
+		return Math.max(0, Math.min(15, result));
 	}
 	
 	/*
 	 * A RayTrace routine that I can understand.
 	 * Resultant side-hit is not calculated
 	 */
-	private RayTraceResult blockRayTrace(BlockPos pos, Vec3d startVec, Vec3d endVec) {
-
-		// re-base the vectors to 0,0,0
-		double dX = (double)pos.getX();
-		double dY = (double)pos.getY();
-		double dZ = (double)pos.getZ();
-		startVec = startVec.add(-dX, -dY, -dZ);
-        endVec = endVec.add(-dX, -dY, -dZ);
+	private RayTraceResult blockRayTrace(Vec3d startVec, Vec3d endVec) {
+		
+		BlockPos startBlockPos = new BlockPos(startVec);
+		BlockPos endBlockPos = new BlockPos(endVec);
+		
+		if (startBlockPos.equals(endBlockPos)) {
+			return null;
+		}
+		
+		// Re-base so we are working within the unit cube
+        Vec3d fromVec = startVec.subtract(startBlockPos.getX(), startBlockPos.getY(), startBlockPos.getZ());
+        Vec3d toVec = endVec.subtract(startBlockPos.getX(), startBlockPos.getY(), startBlockPos.getZ());
 
         Vec3d hitPoint = null;
 
+        if (toVec.x < 0f && fromVec.x == 0f) {
+        	// Shift everything up the x-axis
+        	fromVec = fromVec.add(1f, 0f, 0f);
+        	toVec = toVec.add(1f, 0f, 0f);
+        	startBlockPos = startBlockPos.add(-1, 0, 0);
+        }
+
+        if (toVec.y < 0f && fromVec.y == 0f) {
+        	// Shift everything up the y-axis
+        	fromVec = fromVec.add(0f, 1f, 0f);
+        	toVec = toVec.add(0f, 1f, 0f);
+        	startBlockPos = startBlockPos.add(0, -1, 0);
+        }
+
+        if (toVec.z < 0f && fromVec.z == 0f) {
+        	// Shift everything up the z-axis
+        	fromVec = fromVec.add(0f, 0f, 1f);
+        	toVec = toVec.add(0f, 0f, 1f);
+        	startBlockPos = startBlockPos.add(0, 0, -1);
+        }
+
         // Does the vector cross x == 0?
-        if (startVec.x > 0.0) {
-            hitPoint = startVec.getIntermediateWithXValue(endVec, 0.0);
+        if (toVec.x < 0f) {
+            hitPoint = fromVec.getIntermediateWithXValue(toVec, 0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(-1, 0, 0));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(-1, 0, 0));                	
                 }
             }        	
         }
         
-        if (startVec.x < 1.0) {
+        if (toVec.x > 1.0f) {
             // Does the vector cross x == 1?
-            hitPoint = startVec.getIntermediateWithXValue(endVec, 1.0);
+            hitPoint = fromVec.getIntermediateWithXValue(toVec, 1f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(1, 0, 0));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(1, 0, 0));                	
                 }
             }        	
         }
 
-        if (startVec.y > 0.0) {
+        if (toVec.y < 0.0f) {
             // Does the vector cross y == 0?
-            hitPoint = startVec.getIntermediateWithYValue(endVec, 0.0);
+            hitPoint = fromVec.getIntermediateWithYValue(toVec, 0.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, -1, 0));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, -1, 0));                	
                 }
             }        	
         }
         
-        if (startVec.y < 1.0) {
+        if (toVec.y > 1.0f) {
             // Does the vector cross y == 1?
-            hitPoint = startVec.getIntermediateWithYValue(endVec, 1.0);
+            hitPoint = fromVec.getIntermediateWithYValue(toVec, 1.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 1, 0));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.UP, startBlockPos.add(0, 1, 0));                	
                 }
             }        	
         }
 
-        if (startVec.z > 0.0) {
+        if (toVec.z < 0.0f) {
             // Does the vector cross z == 0?
-            hitPoint = startVec.getIntermediateWithZValue(endVec, 0.0);
+            hitPoint = fromVec.getIntermediateWithZValue(toVec, 0.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 0, -1));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, 0, -1));                	
                 }
             }        	
         }
         
-        if (startVec.z < 1.0) {
+        if (toVec.z > 1.0f) {
             // Does the vector cross z == 1?
-            hitPoint = startVec.getIntermediateWithZValue(endVec, 1.0);
+            hitPoint = fromVec.getIntermediateWithZValue(toVec, 1.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
-                	hitPoint = hitPoint.add(dX, dY, dZ);
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, pos.add(0, 0, 1));                	
+                	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
+                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, 0, 1));                	
                 }
             }        	
         }
@@ -187,8 +174,8 @@ public class DirtyRayTrace {
         return null;
 	}
 	
-	private boolean inBounds(double x) {
-		return x >= 0.0 && x <= 1.0;
+	private boolean inBounds(double coord) {
+		return coord >= 0.0f && coord <= 1.0f;
 	}
 
 }
