@@ -87,10 +87,23 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public void setMCVertexLight(int x, int y, int z, short light) {
-		if (y < 0)
-			y = 0;
-		mcLight[(y >> 4) & 0xF][x & 0xF][y & 0xF][z & 0xF] = light;
+	public void setMCVertexLight(double x, double y, double z, short light) {
+		
+		int intX = (int)Math.round(x);
+		int intY = (int)Math.round(y);
+		int intZ = (int)Math.round(z);
+		float err = 1f / 32f;
+
+		// only save the light value if the position is close enough to a vertex
+		if (Math.abs(x - intX) < err &&
+			Math.abs(y - intY) < err &&
+			Math.abs(z - intZ) < err				
+		) {
+			if (intY < 0)
+				intY = 0;
+			mcLight[(intY >> 4) & 0xF][intX & 0xF][intY & 0xF][intZ & 0xF] = light;
+		}
+		
 	}
 
 	@Override
@@ -103,7 +116,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public short getVertexLight(float x, float y, float z) {
+	public short getVertexLight(double x, double y, double z) {
 		if (y < 0f)
 			y = 0f;
 		if (y > 255f)

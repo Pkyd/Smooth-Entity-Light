@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.renderer.vertex.VertexFormatElement;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.client.model.pipeline.VertexLighterFlat;
@@ -57,26 +58,13 @@ public class VertexLighterSEL extends VertexLighterFlat {
                 normal[v][3] = 0;
             }
         }
-        
-        float centerX = 0f;
-        float centerY = 0f;
-        float centerZ = 0f;
-        for(int v = 0; v < 4; v++)
-        {
-        	centerX += position[v][0];
-        	centerY += position[v][1];
-        	centerZ += position[v][2];
-        }
-        centerX = centerX / 4.0f;
-        centerY = centerY / 4.0f;
-        centerZ = centerZ / 4.0f;
-                
+                        
         int multiplier = -1;
         if(tint != -1)
         {
             multiplier = blockInfo.getColorMultiplier(tint);
         }
-
+        
         VertexFormat format = parent.getVertexFormat();
         int count = format.getElementCount();
                 
@@ -118,25 +106,11 @@ public class VertexLighterSEL extends VertexLighterFlat {
                 applyAnaglyph(color[v]);
             }
 
-            if (this.blockInfo.getState().isFullCube()) {
-                BlockPos vertPos = this.blockInfo.getBlockPos().add(Math.round(position[v][0]), Math.round(position[v][1]), Math.round(position[v][2]));
-                ILitChunkCache lcc = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, vertPos.getX() >> 4, vertPos.getZ() >> 4);
-            	// Save the light value into the cache
-                lcc.setMCVertexLight(vertPos.getX(), vertPos.getY(), vertPos.getZ(), (short)Math.round(lightmap[v][0] * 0x7FFF));            	
-                lightmap[v][0] = (float)lcc.getVertexLight(vertPos.getX(), vertPos.getY(), vertPos.getZ()) / 0x7FFF;            	
-            } else {
-                BlockPos blockPos = new BlockPos(
-                    	(float)this.blockInfo.getBlockPos().getX() + centerX + normal[v][0] * 0.1f, 
-                    	(float)this.blockInfo.getBlockPos().getY() + centerY + normal[v][1] * 0.1f, 
-                    	(float)this.blockInfo.getBlockPos().getZ() + centerZ + normal[v][2] * 0.1f
-            	);
-
-                ILitChunkCache lcc = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, blockPos.getX() >> 4, blockPos.getZ() >> 4);
-                lightmap[v][0] = Math.max(
-                		lcc.getBlockLight(blockPos.getX(), blockPos.getY(), blockPos.getZ()), 
-        				16f * lcc.getChunk().getLightFor(EnumSkyBlock.BLOCK, blockPos)
-        			) / 0x7FFF;            	            	
-            }
+            Vec3d vertPos = new Vec3d(this.blockInfo.getBlockPos()).add(position[v][0], position[v][1], position[v][2]);
+            ILitChunkCache lcc = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, (int)Math.round(vertPos.x) >> 4, (int)Math.round(vertPos.z) >> 4);
+        	// Save the light value into the cache
+            lcc.setMCVertexLight(vertPos.x, vertPos.y, vertPos.z, (short)Math.round(lightmap[v][0] * 0x7FFF));            	
+            lightmap[v][0] = (float)lcc.getVertexLight(vertPos.x, vertPos.y, vertPos.z) / 0x7FFF;            	
 
         }
                         
@@ -146,15 +120,15 @@ public class VertexLighterSEL extends VertexLighterFlat {
         // re-order the triangles in the quad so brightness is always blended smoothly
         if (
         		(
-	        		Math.max(lightmap[3][0], lightmap[3][1]) 
+	        		(lightmap[3][0] + lightmap[3][1]) 
 	        		-
-	        		Math.max(lightmap[0][0], lightmap[0][1])
+	        		(lightmap[0][0] + lightmap[0][1])
         		)
-        	>
+        	<
         		(
-	        		Math.max(lightmap[2][0], lightmap[2][1]) 
+	        		(lightmap[2][0] + lightmap[2][1]) 
 	        		-
-	        		Math.max(lightmap[1][0], lightmap[1][1])
+	        		(lightmap[1][0] + lightmap[1][1])
         		)
             	
     	) {

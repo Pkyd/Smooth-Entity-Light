@@ -39,7 +39,7 @@ public interface ILitChunkCache {
 	/*
 	 * set the vanilla light value in the cache
 	 */
-	public void setMCVertexLight(int x, int y, int z, short light);
+	public void setMCVertexLight(double x, double y, double z, short light);
 
 	/*
 	 * get the SEL light value from the cache (ignoring MC Light values)
@@ -49,7 +49,7 @@ public interface ILitChunkCache {
 	/*
 	 * get the light value from the cache
 	 */
-	public short getVertexLight(float x, float y, float z);
+	public short getVertexLight(double x, double y, double z);
 
 	/*
 	 * A list of BlockPos in this chunk that need re-lighting 

@@ -48,7 +48,7 @@ public class DummyChunkCache implements ILitChunkCache {
 	}
 
 	@Override
-	public void setMCVertexLight(int x, int y, int z, short light) {
+	public void setMCVertexLight(double x, double y, double z, short light) {
 		// Do Nothing
 	}
 
@@ -58,7 +58,7 @@ public class DummyChunkCache implements ILitChunkCache {
 	}
 
 	@Override
-	public short getVertexLight(float x, float y, float z) {
+	public short getVertexLight(double x, double y, double z) {
 		return 0;
 	}
 

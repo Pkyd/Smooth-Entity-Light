@@ -141,6 +141,7 @@ public class EventHandler {
 							// 6 <= Light level (2 x Short) (also a texture co-ord)
 
 							for (BlockRenderLayer layer : BlockRenderLayer.values()) {
+
 								VertexBuffer vbo = renderChunk.getVertexBufferByLayer(layer.ordinal());
 
 								vbo.bindBuffer();
@@ -165,11 +166,9 @@ public class EventHandler {
 																		// bytes)
 									int quadCount = vertCount / 4; // each quad is four vertices (duh!)
 									
-
 									for (int q = 0; q < quadCount; q++) {
 										int[][] thisQuad = new int[4][];
 										float[][] position = new float[4][3];
-										float[][] normal = new float[4][3];
 										boolean quadChanged = false;
 										
 										for (int v = 0; v < 4; v++) {
@@ -180,100 +179,50 @@ public class EventHandler {
 											position[v][1] = Float.intBitsToFloat(thisQuad[v][1]);
 											position[v][2] = Float.intBitsToFloat(thisQuad[v][2]);											
 										}
-										
-										
-								        float centerX = 0f;
-								        float centerY = 0f;
-								        float centerZ = 0f;
-							            Vector3f v1 = new Vector3f(position[3]);
-							            Vector3f t = new Vector3f(position[1]);
-							            Vector3f v2 = new Vector3f(position[2]);
-							            v1.sub(t);
-							            t.set(position[0]);
-							            v2.sub(t);
-							            v1.cross(v2, v1);
-							            v1.normalize();								        
-								        for(int v = 0; v < 4; v++)
-								        {
-								        	centerX += position[v][0];
-								        	centerY += position[v][1];
-								        	centerZ += position[v][2];
-							                normal[v][0] = v1.x;
-							                normal[v][1] = v1.y;
-							                normal[v][2] = v1.z;
-								        }
-								        centerX = centerX / 4.0f;
-								        centerY = centerY / 4.0f;
-								        centerZ = centerZ / 4.0f;
-								        
-										BlockPos baseBlockPos = lightCache.getChunk().getPos().getBlock(0, y << 4, 0);
-										
-						                BlockPos blockPos = new BlockPos(
-						                    	(float)baseBlockPos.getX() + centerX - normal[0][0] * 0.1f, 
-						                    	(float)baseBlockPos.getY() + centerY - normal[0][1] * 0.1f, 
-						                    	(float)baseBlockPos.getZ() + centerZ - normal[0][2] * 0.1f
-						            	);
-						                							                
-						                IBlockState blockState = ClientProxy.mcinstance.world.getBlockState(blockPos);
-
+																		        																                							                
 										for (int v = 0; v < 4; v++) {
 											int yChunk = y;
 																		                
+											// Vertices range from 0 to 16 (not 0 to 15!!)
+											int vertX = Math.round(position[v][0]);
+											int vertY = Math.round(position[v][1]);
+											int vertZ = Math.round(position[v][2]);
+
+											ILitChunkCache thisLitChunkCache = lightCache;
+
+											if (vertX > 15) {
+												vertX -= 16;
+												thisLitChunkCache = LightUtils.getLitChunkCache(
+														ClientProxy.mcinstance.world, lightCache.getChunk().x + 1,
+														lightCache.getChunk().z);
+											}
+
+											if (vertY > 15) {
+												if (yChunk == 15) {
+													vertY = 15;
+												} else {
+													vertY -= 16;
+													yChunk += 1;
+												}
+											}
+
+											if (vertZ > 15) {
+												vertZ -= 16;
+												thisLitChunkCache = LightUtils.getLitChunkCache(
+														ClientProxy.mcinstance.world, thisLitChunkCache.getChunk().x,
+														thisLitChunkCache.getChunk().z + 1);
+											}
+
 											int mcLight = thisQuad[v][6];
-							                short selLight;
-							                if (blockState.isFullCube()) {
-												// Vertices range from 0 to 16 (not 0 to 15!!)
-												float vertX = position[v][0];
-												float vertY = position[v][1];
-												float vertZ = position[v][2];
-
-												ILitChunkCache thisLitChunkCache = lightCache;
-
-												if (vertX > 16 - 1e-6) {
-													vertX -= 16;
-													thisLitChunkCache = LightUtils.getLitChunkCache(
-															ClientProxy.mcinstance.world, lightCache.getChunk().x + 1,
-															lightCache.getChunk().z);
-												}
-
-												if (vertY > 16 - 1e-6) {
-													if (yChunk == 15) {
-														vertY = 15f;
-													} else {
-														vertY -= 16;
-														yChunk += 1;
-													}
-												}
-
-												if (vertZ > 16 - 1e-6) {
-													vertZ -= 16;
-													thisLitChunkCache = LightUtils.getLitChunkCache(
-															ClientProxy.mcinstance.world, thisLitChunkCache.getChunk().x,
-															thisLitChunkCache.getChunk().z + 1);
-												}
-
-												selLight = thisLitChunkCache.getVertexLight(vertX,
-														(16 * yChunk) + vertY, vertZ);
-							                } else {
-							                	blockPos = new BlockPos(
-								                    	(float)baseBlockPos.getX() + centerX + normal[v][0] * 0.1f, 
-								                    	(float)baseBlockPos.getY() + centerY + normal[v][1] * 0.1f, 
-								                    	(float)baseBlockPos.getZ() + centerZ + normal[v][2] * 0.1f
-								            	);
-							                	ILitChunkCache thisLitChunkCache = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, blockPos.getX() >> 4, blockPos.getZ() >> 4);
-							                	selLight = (short)Math.max(
-							                			thisLitChunkCache.getBlockLight(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-							            				16f * thisLitChunkCache.getChunk().getLightFor(EnumSkyBlock.BLOCK, blockPos)
-						            			);            	            	
-							                }
-											
+											short selLight = thisLitChunkCache.getVertexLight(vertX,
+													(16 * yChunk) + vertY, vertZ);											
 											int newLight = (mcLight & 0xFFFF0000) | selLight;
 
 											if (mcLight != newLight) {
 												thisQuad[v][6] = newLight;
 												quadChanged = true;
 											}
-											thisQuad[v][7] = selLight; // Math.max(selLight, (mcLight & 0xFFFF0000) >> 16);
+											thisQuad[v][7] = selLight + ((mcLight & 0xFFFF0000) >> 16);
 
 										}
 

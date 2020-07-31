@@ -173,7 +173,6 @@ public class LightUtils {
                 
                 // stop light from travelling through (or around) opaque blocks
             	lightValue -= rayTrace.rayTraceForOpacity(entity.getPositionEyes(partialTicks), target);
-        		lightValue = Math.max(0f, Math.min(15f, lightValue));                	
                 
                 // If this source is not the brightest we have seen, test the next
                 if (lightValue <= maxLight) continue;
