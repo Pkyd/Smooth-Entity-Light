@@ -2,26 +2,20 @@ import groovy.json.*
 
 buildscript {
     repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
         mavenCentral()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
-        }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
-    }
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true    }
 }
 
 plugins {
 	id "com.matthewprenger.cursegradle" version "1.4.0"
 }
 
-apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
 
 // Define properties file
 ext.configFile = file "build.properties"
@@ -42,7 +36,7 @@ compileJava {
 }
 
 dependencies {
-
+	minecraft "net.minecraftforge:forge:${config.mc_version}-${config.forge_version}"
 }
 
 task wrapper(type: Wrapper) {
@@ -50,19 +44,43 @@ task wrapper(type: Wrapper) {
 }
 
 minecraft {
-    mappings = config.mappings
-    version = "${config.mc_version}-${config.forge_version}"
-    if (file('../run').exists()) {
-	    runDir = '../run/eclipse'
-    } else {
-	    runDir = 'run'
-    }
-    
-	replaceIn 'SEL.java'
-		replace 'MCVERSION', config.mc_version
-        replace 'MODVERSION', "${config.mod_version}.${config.build_number}"
-        replace 'FORGEVERSION', "${config.forge_version}"
+    mappings channel: 'stable', version: "${config.mappings}-${config.mc_version}"
 
+	// Default run configurations.
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+    }		
+    
 }
 
 processResources {
