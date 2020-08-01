@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import lakmoore.sel.client.EventHandler;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import lakmoore.sel.client.adaptors.BaseAdaptor;

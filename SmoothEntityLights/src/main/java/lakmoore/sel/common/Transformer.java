@@ -2,7 +2,6 @@ package lakmoore.sel.common;
 
 import static org.objectweb.asm.Opcodes.*;
 
-import java.lang.reflect.Field;
 import java.util.Iterator;
 
 import net.minecraft.launchwrapper.IClassTransformer;

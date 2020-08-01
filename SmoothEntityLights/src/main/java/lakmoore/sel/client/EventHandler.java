@@ -41,9 +41,7 @@ import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -139,7 +137,7 @@ public class EventHandler {
 							// 4 <= Texture Co-ord "U" (Float - 4 bytes)
 							// 5 <= Texture Co-ord "V" (Float - 4 bytes)
 							// 6 <= Light level (2 x Short) (also a texture co-ord)
-
+							
 							for (BlockRenderLayer layer : BlockRenderLayer.values()) {
 
 								VertexBuffer vbo = renderChunk.getVertexBufferByLayer(layer.ordinal());
@@ -153,9 +151,21 @@ public class EventHandler {
 									int integerCount = byteCount / 4;
 
 									IntBuffer data = BufferUtils.createIntBuffer(integerCount);
+									
+									int[] rawBuffer = null;
+									if (layer == BlockRenderLayer.TRANSLUCENT && renderChunk.getCompiledChunk() != null && renderChunk.getCompiledChunk().getState() != null && renderChunk.getCompiledChunk().getState().getRawBuffer() != null) {
+										// minecraft does this janky thing where it re-sorts the vertices in the translucent layer
+										// that is not the problem, the problem is that it does it whenever the camera moves
+										// further than 1 block from its last position... janky!
+										rawBuffer = renderChunk.getCompiledChunk().getState().getRawBuffer();
+									} else {
+										// Fetch the Vertex Buffer from the GPU
+										GL15.glGetBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
 
-									// Fetch the Vertex Buffer from the GPU
-									GL15.glGetBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+										rawBuffer = new int[integerCount];
+										data.get(rawBuffer);
+									}
+
 
 									boolean changed = false;
 									int putIndex = 0;
@@ -173,7 +183,9 @@ public class EventHandler {
 										
 										for (int v = 0; v < 4; v++) {
 											thisQuad[v] = new int[9];
-											data.get(thisQuad[v], 0, 7);
+											for(int i = 0; i < 7; i++) {
+												thisQuad[v][i] = rawBuffer[putIndex + (v * 7) + i];													
+											}
 											
 											position[v][0] = Float.intBitsToFloat(thisQuad[v][0]);
 											position[v][1] = Float.intBitsToFloat(thisQuad[v][1]);
@@ -247,7 +259,9 @@ public class EventHandler {
 											data.position(putIndex);
 											// thisQuad contains 4 vertices of data
 											for (int v = 0; v < 4; v++) {
-												data.put(thisQuad[order[v]], 0, 7);
+												for (int w = 0; w < 7; w++) {
+													rawBuffer[putIndex + (v * 7) + w] = thisQuad[order[v]][w];												
+												}													
 											}
 											changed = true;
 										}
@@ -257,6 +271,8 @@ public class EventHandler {
 									}
 
 									if (changed) {
+										data.rewind();
+										data.put(rawBuffer);
 										data.rewind();
 										GL15.glBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
 									}

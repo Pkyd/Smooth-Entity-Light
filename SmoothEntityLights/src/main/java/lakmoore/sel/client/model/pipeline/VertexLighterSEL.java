@@ -9,9 +9,7 @@ import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.renderer.vertex.VertexFormatElement;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.EnumSkyBlock;
 import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.client.model.pipeline.VertexLighterFlat;
 
@@ -105,12 +103,12 @@ public class VertexLighterSEL extends VertexLighterFlat {
             {
                 applyAnaglyph(color[v]);
             }
-
+            
             Vec3d vertPos = new Vec3d(this.blockInfo.getBlockPos()).add(position[v][0], position[v][1], position[v][2]);
             ILitChunkCache lcc = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, (int)Math.round(vertPos.x) >> 4, (int)Math.round(vertPos.z) >> 4);
         	// Save the light value into the cache
-            lcc.setMCVertexLight(vertPos.x, vertPos.y, vertPos.z, (short)Math.round(lightmap[v][0] * 0x7FFF));            	
-            lightmap[v][0] = (float)lcc.getVertexLight(vertPos.x, vertPos.y, vertPos.z) / 0x7FFF;            	
+            lcc.setMCVertexLight(vertPos.x, vertPos.y, vertPos.z, (short)Math.round(lightmap[v][0] * 0x7FFF)); 
+            lightmap[v][0] = (float)lcc.getVertexLight(vertPos.x, vertPos.y, vertPos.z) / 0x7FFF; 
 
         }
                         

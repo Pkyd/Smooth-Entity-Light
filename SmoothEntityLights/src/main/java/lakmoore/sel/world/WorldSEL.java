@@ -28,7 +28,7 @@ public abstract class WorldSEL extends World {
 	@Override
     public int getCombinedLight(BlockPos pos, int lightValue) {
 //		SEL.mcProfiler.startSection(SEL.modId + ":getLightBrightness");
-						
+								
 		int light = super.getCombinedLight(pos, lightValue);
 		// light is of the form: XXXXXXXX00000000YYYYYYYY
 		// where:

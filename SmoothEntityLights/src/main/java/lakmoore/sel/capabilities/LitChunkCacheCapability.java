@@ -14,7 +14,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -88,17 +87,18 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 
 	@Override
 	public void setMCVertexLight(double x, double y, double z, short light) {
-		
+				
 		int intX = (int)Math.round(x);
 		int intY = (int)Math.round(y);
 		int intZ = (int)Math.round(z);
-		float err = 1f / 32f;
+		float err = 1f / (32f * 32f);
+		
+		boolean isBlockVertex = (x - intX) * (x - intX) + (y - intY) * (y - intY) + (z - intZ) * (z - intZ) < err;
+		short currentLight = mcLight[(intY >> 4) & 0xF][intX & 0xF][intY & 0xF][intZ & 0xF] = light;
 
 		// only save the light value if the position is close enough to a vertex
-		if (Math.abs(x - intX) < err &&
-			Math.abs(y - intY) < err &&
-			Math.abs(z - intZ) < err				
-		) {
+		// or the light value is at least 1 level brighter than the current value
+		if (isBlockVertex || light > (1 + currentLight)) {
 			if (intY < 0)
 				intY = 0;
 			mcLight[(intY >> 4) & 0xF][intX & 0xF][intY & 0xF][intZ & 0xF] = light;
