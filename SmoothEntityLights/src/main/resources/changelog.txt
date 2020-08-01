@@ -1,3 +1,10 @@
+4.0.1 (for MC1.12.2)
+Fixed the problem with the transparent render layer (elegant solution)
+Fixed the problem with Fluids using a completely different renderer (horrible hack)
+Fixed a problem with BlockLight in the top layer of a chunk
+Removed some unnecessary calculations, made things more simple
+Further improved Quad Flipping
+
 4.0.0 (for MC1.12.2)
 MASSIVE overhaul
 Entity light is now written directly into the VBOs on your graphics card using OpenGL calls
