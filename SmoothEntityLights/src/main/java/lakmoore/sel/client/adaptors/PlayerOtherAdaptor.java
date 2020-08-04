@@ -11,7 +11,7 @@ public class PlayerOtherAdaptor extends BaseAdaptor
         
         public PlayerOtherAdaptor(EntityPlayer p)
         {
-        		super(p);
+    		super(p);
             player = p;
         }
         
@@ -25,7 +25,7 @@ public class PlayerOtherAdaptor extends BaseAdaptor
             {           
                 int lightLevel = 0;
             	for (ItemStack item : player.getEquipmentAndArmor()) {
-                    lightLevel = LightUtils.maxLight(lightLevel, Config.itemsMap.getLightFromItemStack(item));        		
+                    lightLevel = LightUtils.maxLight(lightLevel, Config.lightValueMap.get(item.getTranslationKey()));        		
             	}
                 return lightLevel;
             }            

@@ -1,5 +1,9 @@
 package lakmoore.sel.world;
 
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.LightUtils;
@@ -9,20 +13,24 @@ import net.minecraft.entity.Entity;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldProvider;
+import net.minecraft.world.dimension.Dimension;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
+import net.minecraft.world.storage.WorldSavedDataStorage;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.common.util.NonNullFunction;
 
 public abstract class WorldSEL extends World {
 		
-	public WorldSEL(
+	public WorldSEL(			
 		ISaveHandler saveHandler, 
+		@Nullable WorldSavedDataStorage dataStorage, 
 		WorldInfo info, 
-		WorldProvider provider, 
+		Dimension dimension, 
 		Profiler profiler, 
 		boolean client
 	) {
-		super(saveHandler, info, provider, profiler, client);
+		super(saveHandler, dataStorage, info, dimension, profiler, client);
 	}
 	
 	@Override
@@ -37,7 +45,7 @@ public abstract class WorldSEL extends World {
 		if (
         	!SEL.disabled   							// Lights are not disabled
         	&& (light & 0xFF) < 0xF0					// Block light is not already at max
-        	&& !this.getBlockState(pos).isOpaqueCube()	// Block needs lighting
+        	&& !this.getBlockState(pos).isOpaqueCube(this, pos)	// Block needs lighting
 //        	&& SEL.enabledForDimension(Minecraft.getMinecraft().thePlayer.dimension)
         ) {  
 			ILitChunkCache lc = LightUtils.getLitChunkCache(this, pos.getX() >> 4, pos.getZ() >> 4);
@@ -79,9 +87,10 @@ public abstract class WorldSEL extends World {
 	@Override
     public void removeEntity(Entity entity)
     {
-		ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
-        if (sources != null)
-    		sources.destroy();
+		entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null)
+		.ifPresent(sources -> {
+    		sources.destroy();			
+		});
         
 		super.removeEntity(entity);
     }

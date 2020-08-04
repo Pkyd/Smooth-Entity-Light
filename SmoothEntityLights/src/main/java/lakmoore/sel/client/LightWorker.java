@@ -89,7 +89,7 @@ public class LightWorker extends Thread {
 	public void updateCamera(ICamera camera, float partialTicks, int renderDistanceChunks) {
 		this.iCamera = camera;
 		this.partialTicks = partialTicks;
-		this.cameraPos = this.player.getPositionEyes(partialTicks);
+		this.cameraPos = this.player.getEyePosition(partialTicks);
 		this.iCamera.setPosition(cameraPos.x, cameraPos.y, cameraPos.z);
 		this.maxDistSq = renderDistanceChunks * 0.75f * renderDistanceChunks * 0.75f * 256.0f;
 	}
@@ -166,7 +166,7 @@ public class LightWorker extends Thread {
 							this.blocksToUpdate.remove(blockPos);				
 
 							// never need to light Opaque blocks
-							if(!this.player.world.getBlockState(blockPos).isOpaqueCube()) {
+							if(!this.player.world.getBlockState(blockPos).isOpaqueCube(this.player.world, blockPos)) {
 								// TODO: Test if culling block with no line of sight to camera is faster
 								ILitChunkCache litChunk = LightUtils.getLitChunkCache(this.player.world,
 										blockPos.getX() >> 4, blockPos.getZ() >> 4);

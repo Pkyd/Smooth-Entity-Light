@@ -9,7 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.GameRegistry;
-import coloredlightscore.src.api.CLBlock;
+//import coloredlightscore.src.api.CLBlock;
 
 public class ItemConfigHelper
 {
@@ -67,7 +67,7 @@ public class ItemConfigHelper
         		while (items.hasNext())
                 {
             			item = items.next();
-            			if (item.matches(name, stack.getMetadata()))
+            			if (item.matches(name))
             			{
                         //if we already have an entry, delete it
                         items.remove();
@@ -75,7 +75,7 @@ public class ItemConfigHelper
                 }
 
                 //add the new entry
-                dataMap.put(new ItemData(name, stack.getMetadata(), WILDCARD), lightLevel);
+                dataMap.put(new ItemData(name), lightLevel);
             }
         }                
     }
@@ -84,28 +84,28 @@ public class ItemConfigHelper
     {
         if (stack != null)
         {
-            int r = retrieveValue(stack.getItem().getRegistryName(), stack.getMetadata());
+            int r = retrieveValue(stack.getItem().getRegistryName());
             return r < 0 ? 0 : r;
         }
         return 0;
     }
     
-    public int retrieveValue(ResourceLocation name, int meta)
+    public int retrieveValue(ResourceLocation name)
     {
         if (name != null)
         {
             for (ItemData item : dataMap.keySet())
             {
-                if (item.matches(name, meta))
+                if (item.matches(name))
                 {
                     int val = dataMap.get(item);
                     if (val == WILDCARD)
                     {
                         Block b = GameRegistry.findRegistry(Block.class).getValue(name);
-                        if (b instanceof CLBlock)
-                        {
-                            return ((CLBlock)b).getColorLightValue(meta);
-                        }
+//                        if (b instanceof CLBlock)
+//                        {
+//                            return ((CLBlock)b).getColorLightValue(meta);
+//                        }
                         return b != null ? b.getDefaultState().getLightValue() : 0;
                     }
                     return val;
@@ -132,7 +132,7 @@ public class ItemConfigHelper
                 
         ResourceLocation name = new ResourceLocation(strings[0]);
         
-        return new ItemData(name, sm, em);
+        return new ItemData(name);
     }
     
     private int catchWildcard(String s)
@@ -147,41 +147,30 @@ public class ItemConfigHelper
     private class ItemData
     {
         private ResourceLocation nameOf;
-        final int startMeta;
-        final int endMeta;
         
-        public ItemData(ResourceLocation name, int startmetarange, int endmetarange)
+        public ItemData(ResourceLocation name)
         {
             nameOf = name;
-            startMeta = startmetarange;
-            endMeta = endmetarange;
         }
         
         @Override
         public String toString()
         {
-            return nameOf										//minecraft:torch
-                    + (startMeta < 1 ? "" : "-" + startMeta)		//-0
-                    + (endMeta < 1 ? "" : "-" + endMeta);
+            return nameOf.toString();			//minecraft:torch
         }
         
-        public boolean matches(ResourceLocation name, int meta)
+        public boolean matches(ResourceLocation name)
         {
-            return name.equals(nameOf) && isContained(startMeta, endMeta, meta);
+            return name.equals(nameOf);
         }
-        
-        private boolean isContained(int s, int e, int i)
-        {
-            return (s == WILDCARD || i >= s) && (e == WILDCARD || i <= e);
-        }
-        
+                
         @Override
         public boolean equals(Object o)
         {
             if (o instanceof ItemData)
             {
                 ItemData i = (ItemData) o;
-                return i.nameOf.equals(nameOf) && i.startMeta == startMeta && i.endMeta == endMeta;
+                return i.nameOf.equals(nameOf);
             }
             return false;
         }
@@ -189,7 +178,7 @@ public class ItemConfigHelper
         @Override
         public int hashCode()
         {
-            return nameOf.hashCode() + startMeta + endMeta;
+            return nameOf.hashCode();
         }
     }
     

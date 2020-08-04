@@ -5,10 +5,11 @@ import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ChunkCache;
+import net.minecraft.world.IBlockReader;
+import net.minecraft.world.Region;
 import net.minecraft.world.World;
 
-public class ChunkCacheSEL extends ChunkCache {
+public class ChunkCacheSEL extends Region {
 	
 	World world;
 
@@ -48,7 +49,7 @@ public class ChunkCacheSEL extends ChunkCache {
 		if (
         	!SEL.disabled   							// Lights are not disabled
         	&& (light & 0xFF) < 0xF0					// Block light is not already at max
-        	&& !this.getBlockState(pos).isOpaqueCube()	// Block needs lighting
+        	&& !this.getBlockState(pos).isOpaqueCube((IBlockReader)this, pos)	// Block needs lighting
 //        	&& SEL.enabledForDimension(Minecraft.getMinecraft().thePlayer.dimension)
         ) {  
 			ILitChunkCache lc = LightUtils.getLitChunkCache(world, pos.getX() >> 4, pos.getZ() >> 4);

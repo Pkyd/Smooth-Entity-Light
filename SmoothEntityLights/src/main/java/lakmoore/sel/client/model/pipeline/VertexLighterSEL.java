@@ -5,7 +5,6 @@ import javax.vecmath.Vector3f;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
-import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.renderer.vertex.VertexFormatElement;
@@ -98,10 +97,6 @@ public class VertexLighterSEL extends VertexLighterFlat {
                 {
                     color[v][i] *= d;
                 }
-            }
-            if(EntityRenderer.anaglyphEnable)
-            {
-                applyAnaglyph(color[v]);
             }
             
             Vec3d vertPos = new Vec3d(this.blockInfo.getBlockPos()).add(position[v][0], position[v][1], position[v][2]);

@@ -1,3 +1,4 @@
+
 modLoader="javafml"
 loaderVersion="[25,)"
 issueTrackerURL="https://github.com/LakMoore/Smooth-Entity-Light/issues"
@@ -28,3 +29,4 @@ issueTrackerURL="https://github.com/LakMoore/Smooth-Entity-Light/issues"
 	    versionRange="[1.13.2]"
 	    ordering="NONE"
 	    side="BOTH"
+	    

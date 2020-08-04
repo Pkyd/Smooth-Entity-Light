@@ -34,15 +34,15 @@ public class MobLightAdaptor extends BaseAdaptor
 			{
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_gold.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.GOLDEN_HORSE_ARMOR)); // horsearmorgold
+					return Config.lightValueMap.get(new ItemStack(Items.GOLDEN_HORSE_ARMOR).getTranslationKey()); // horsearmorgold
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_iron.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.IRON_HORSE_ARMOR)); // horsearmormetal
+					return Config.lightValueMap.get(new ItemStack(Items.IRON_HORSE_ARMOR).getTranslationKey()); // horsearmormetal
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_diamond.png"))
 				{
-					return Config.itemsMap.getLightFromItemStack(new ItemStack(Items.DIAMOND_HORSE_ARMOR)); // butt stallion
+					return Config.lightValueMap.get(new ItemStack(Items.DIAMOND_HORSE_ARMOR).getTranslationKey()); // butt stallion
 				}
 			}
 		}
@@ -55,7 +55,7 @@ public class MobLightAdaptor extends BaseAdaptor
 		int light = 0;
 		for (ItemStack item : ent.getEquipmentAndArmor())
 		{
-			light = LightUtils.maxLight(light, Config.itemsMap.getLightFromItemStack(item));
+			light = LightUtils.maxLight(light, Config.lightValueMap.get(item.getTranslationKey()));
 		}
 		return light;
 	}

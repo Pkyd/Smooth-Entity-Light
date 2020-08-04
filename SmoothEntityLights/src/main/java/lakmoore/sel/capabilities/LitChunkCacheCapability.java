@@ -17,6 +17,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.common.util.NonNullSupplier;
 
 public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCache {
 
@@ -160,19 +162,26 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	public boolean hasDirtyBlocks(int yChunk) {
 		return dirtyBlocks.get(yChunk).size() > 0;
 	}
-
-	@Override
-	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-		return capability == SEL.LIT_CHUNK_CACHE_CAPABILITY;
+	
+	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {		
+		return this.getCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY).isPresent();
 	}
 
 	@Override
-	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+	public <T> LazyOptional<T> getCapability(Capability<T> capability, EnumFacing facing) {
 		if (capability == SEL.LIT_CHUNK_CACHE_CAPABILITY) {
-			return SEL.LIT_CHUNK_CACHE_CAPABILITY.cast(this);
+			return LazyOptional.of((NonNullSupplier<T>) () -> {return (T) this;});
 		}
 		return null;
 	}
+	
+//	@Override
+//	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+//	  if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+//	    return (T) inventory;
+//	  }
+//	  return super.getCapability(capability, facing);
+//	}
 
 	@Override
 	public boolean needsReLight(int yChunk) {

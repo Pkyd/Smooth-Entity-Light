@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import lakmoore.sel.client.adaptors.BaseAdaptor;
 import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
@@ -17,6 +17,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.LazyOptional;
 
 /**
  * 
@@ -50,7 +51,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	public void init(Entity entity, World world) {
 		this.world = world;
 		this.entity = entity;
-		thePlayer = Minecraft.getMinecraft().player;
+		thePlayer = ClientProxy.mcinstance.player;
 
 		adaptors = new ArrayList<BaseAdaptor>();
 		prevLight = 0;
@@ -179,14 +180,9 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	}
 
 	@Override
-	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-		return capability == SEL.LIGHT_SOURCE_CAPABILITY;
-	}
-
-	@Override
-	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+	public <T> LazyOptional<T> getCapability(Capability<T> capability, EnumFacing facing) {
 		if (capability == SEL.LIGHT_SOURCE_CAPABILITY) {
-			return SEL.LIGHT_SOURCE_CAPABILITY.cast(this);
+			return (LazyOptional<T>) LazyOptional.of(() -> { return this; });
 		}
 		return null;
 	}

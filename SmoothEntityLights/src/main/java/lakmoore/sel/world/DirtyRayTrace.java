@@ -1,5 +1,7 @@
 package lakmoore.sel.world;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -7,13 +9,13 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
 
 public class DirtyRayTrace {
 
-	private IBlockAccess world;
+	private IBlockReader world;
 
-	public DirtyRayTrace(IBlockAccess world) {
+	public DirtyRayTrace(IBlockReader world) {
 		this.world = world;
 	}
 
@@ -46,7 +48,7 @@ public class DirtyRayTrace {
 						if (state != null) {
 							Block block = state.getBlock();
 							if (block != null && block != Blocks.AIR) {
-								result += state.getLightOpacity(world, thisBlock);
+								result += state.getOpacity(world, thisBlock);
 							}						
 						}													
 
@@ -101,7 +103,7 @@ public class DirtyRayTrace {
 
         // Does the vector cross x == 0?
         if (toVec.x < 0f) {
-            hitPoint = fromVec.getIntermediateWithXValue(toVec, 0f);
+            hitPoint = getIntermediateWithXValue(fromVec, toVec, 0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
@@ -113,7 +115,7 @@ public class DirtyRayTrace {
         
         if (toVec.x > 1.0f) {
             // Does the vector cross x == 1?
-            hitPoint = fromVec.getIntermediateWithXValue(toVec, 1f);
+            hitPoint = getIntermediateWithXValue(fromVec, toVec, 1f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
@@ -125,7 +127,7 @@ public class DirtyRayTrace {
 
         if (toVec.y < 0.0f) {
             // Does the vector cross y == 0?
-            hitPoint = fromVec.getIntermediateWithYValue(toVec, 0.0f);
+            hitPoint = getIntermediateWithYValue(fromVec, toVec, 0.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
@@ -137,7 +139,7 @@ public class DirtyRayTrace {
         
         if (toVec.y > 1.0f) {
             // Does the vector cross y == 1?
-            hitPoint = fromVec.getIntermediateWithYValue(toVec, 1.0f);
+            hitPoint = getIntermediateWithYValue(fromVec, toVec, 1.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
@@ -149,7 +151,7 @@ public class DirtyRayTrace {
 
         if (toVec.z < 0.0f) {
             // Does the vector cross z == 0?
-            hitPoint = fromVec.getIntermediateWithZValue(toVec, 0.0f);
+            hitPoint = getIntermediateWithZValue(fromVec, toVec, 0.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
@@ -161,7 +163,7 @@ public class DirtyRayTrace {
         
         if (toVec.z > 1.0f) {
             // Does the vector cross z == 1?
-            hitPoint = fromVec.getIntermediateWithZValue(toVec, 1.0f);
+            hitPoint = getIntermediateWithZValue(fromVec, toVec, 1.0f);
             if (hitPoint != null) {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
@@ -177,5 +179,71 @@ public class DirtyRayTrace {
 	private boolean inBounds(double coord) {
 		return coord >= 0.0f && coord <= 1.0f;
 	}
+	
+	/**
+     * Returns a new vector with x value equal to the second parameter, along the line between this vector and the
+     * passed in vector, or null if not possible.
+     */
+    @Nullable
+    private Vec3d getIntermediateWithXValue(Vec3d from, Vec3d vec, double x)
+    {
+        double d0 = vec.x - from.x;
+        double d1 = vec.y - from.y;
+        double d2 = vec.z - from.z;
+
+        if (d0 * d0 < 1.0000000116860974E-7D)
+        {
+            return null;
+        }
+        else
+        {
+            double d3 = (x - from.x) / d0;
+            return d3 >= 0.0D && d3 <= 1.0D ? new Vec3d(from.x + d0 * d3, from.y + d1 * d3, from.z + d2 * d3) : null;
+        }
+    }
+
+    /**
+     * Returns a new vector with y value equal to the second parameter, along the line between this vector and the
+     * passed in vector, or null if not possible.
+     */
+    @Nullable
+    private Vec3d getIntermediateWithYValue(Vec3d from, Vec3d vec, double y)
+    {
+        double d0 = vec.x - from.x;
+        double d1 = vec.y - from.y;
+        double d2 = vec.z - from.z;
+
+        if (d1 * d1 < 1.0000000116860974E-7D)
+        {
+            return null;
+        }
+        else
+        {
+            double d3 = (y - from.y) / d1;
+            return d3 >= 0.0D && d3 <= 1.0D ? new Vec3d(from.x + d0 * d3, from.y + d1 * d3, from.z + d2 * d3) : null;
+        }
+    }
+
+    /**
+     * Returns a new vector with z value equal to the second parameter, along the line between this vector and the
+     * passed in vector, or null if not possible.
+     */
+    @Nullable
+    private Vec3d getIntermediateWithZValue(Vec3d from, Vec3d vec, double z)
+    {
+        double d0 = vec.x - from.x;
+        double d1 = vec.y - from.y;
+        double d2 = vec.z - from.z;
+
+        if (d2 * d2 < 1.0000000116860974E-7D)
+        {
+            return null;
+        }
+        else
+        {
+            double d3 = (z - from.z) / d2;
+            return d3 >= 0.0D && d3 <= 1.0D ? new Vec3d(from.x + d0 * d3, from.y + d1 * d3, from.z + d2 * d3) : null;
+        }
+    }
 
 }

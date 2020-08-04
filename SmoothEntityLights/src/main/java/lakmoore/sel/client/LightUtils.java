@@ -19,7 +19,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -30,7 +30,8 @@ public class LightUtils {
 	{
 	    public boolean apply(@Nullable Entity entity)
 	    {
-	        return entity != null && entity.hasCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);
+	    	//TODO: check is .isPresent() is slow!?
+	        return entity != null && entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null).isPresent();
 	    }
 	};	
 	
@@ -65,7 +66,7 @@ public class LightUtils {
      *  Method that searches for nearby Smooth Entity Light sources and calculates the 
      *  generated smooth light value at the given VERTEX location
      */
-	public static short getEntityLightLevel(IBlockAccess world, BlockPos pos, float partialTicks) {
+	public static short getEntityLightLevel(IBlockReader world, BlockPos pos, float partialTicks) {
 		float maxLight = 0.0f;
 
         if (SEL.disabled || world == null || world instanceof WorldServer) {
@@ -75,7 +76,7 @@ public class LightUtils {
         if (world instanceof World) {
 //        	SEL.mcProfiler.startSection(SEL.modId + ":getEntityLightLevel");
         	
-        	int opacity = ((World) world).getBlockLightOpacity(pos);
+        	int opacity = ((World) world).getBlockState(pos).getOpacity(world, pos);
 
         	// If this block is fully opaque it cannot have a light value!
         	if (opacity > 14) {
@@ -90,17 +91,18 @@ public class LightUtils {
             
 			List<Entity> entities = ((World) world).getEntitiesWithinAABB(Entity.class, aabb, HAS_ENTITY_LIGHT);
             for (Entity entity : entities) {
-            	ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);                		
-                if (sources == null) continue;
-
-                float lightValue = sources.getLastLightLevel();                
+            	
+            	ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null).orElse(null);        
+            	if (sources == null) continue;
+            	            			
+            	float lightValue =  sources.getLastLightLevel();                                 
                 if (lightValue <= 0) continue;
                 
                 // if the entity is within a slightly opaque block (think liquids)
                 lightValue = Math.max(Math.min(lightValue - opacity, 15.0f), 0.0f);
                 if (lightValue <= 0) continue;
                                 
-                double distSq = target.squareDistanceTo(entity.getPositionEyes(partialTicks));
+                double distSq = target.squareDistanceTo(entity.getEyePosition(partialTicks));
                                 
                 // light travels less far under water
                 if (sources.isUnderwater()) { // && !Config.isClearWater()) {
@@ -115,7 +117,7 @@ public class LightUtils {
                 if (lightValue <= maxLight) continue;
                 
                 // stop light from travelling through (or around) opaque blocks
-            	lightValue -= rayTrace.rayTraceForOpacity(entity.getPositionEyes(partialTicks), target);
+            	lightValue -= rayTrace.rayTraceForOpacity(entity.getEyePosition(partialTicks), target);
         		lightValue = Math.max(0f, Math.min(15f, lightValue));                	
                 
                 // If this source is not the brightest we have seen, test the next
@@ -137,7 +139,7 @@ public class LightUtils {
      *  Method that searches for nearby Smooth Entity Light sources and calculates the 
      *  smooth light value at the given location being generated from them
      */
-	public static short getEntityLightLevel(IBlockAccess world, List<Entity> interestingEntities, Vec3d vertexPos, float partialTicks) {
+	public static short getEntityLightLevel(IBlockReader world, List<Entity> interestingEntities, Vec3d vertexPos, float partialTicks) {
 		float maxLight = 0.0f;
 
         if (SEL.disabled || world == null || world instanceof WorldServer) {
@@ -151,13 +153,13 @@ public class LightUtils {
         	Vec3d target = vertexPos; 
                     
             for (Entity entity : interestingEntities) {
-            	ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null);        
+            	ILightSourceCapability sources = entity.getCapability(SEL.LIGHT_SOURCE_CAPABILITY, null).orElse(null);        
             	if (sources == null) continue;
             	
                 float lightValue = sources.getLastLightLevel();                
                 if (lightValue <= 0) continue;
                                                 
-                double distSq = target.squareDistanceTo(entity.getPositionEyes(partialTicks));
+                double distSq = target.squareDistanceTo(entity.getEyePosition(partialTicks));
                                 
                 // light travels less far under water
                 if (sources.isUnderwater()) { // && !Config.isClearWater()) {
@@ -172,7 +174,7 @@ public class LightUtils {
                 if (lightValue <= maxLight) continue;
                 
                 // stop light from travelling through (or around) opaque blocks
-            	lightValue -= rayTrace.rayTraceForOpacity(entity.getPositionEyes(partialTicks), target);
+            	lightValue -= rayTrace.rayTraceForOpacity(entity.getEyePosition(partialTicks), target);
                 
                 // If this source is not the brightest we have seen, test the next
                 if (lightValue <= maxLight) continue;
@@ -221,15 +223,15 @@ public class LightUtils {
 			new Vec3d(blockPos).add(0.5, 0.5, 0.5), 
 			camPos
 		);
-		return rtr == null || rtr.typeOfHit != RayTraceResult.Type.BLOCK;  
+		return rtr == null || rtr.type != RayTraceResult.Type.BLOCK;  
     }
     
     public static <T extends Entity> List<T> getEntitiesWithinAABB(Class <? extends T > clazz, AxisAlignedBB aabb, @Nullable Predicate <? super T > filter)
     {
-        int j2 = MathHelper.floor((aabb.minX - World.MAX_ENTITY_RADIUS) / 16.0D);
-        int k2 = MathHelper.ceil((aabb.maxX + World.MAX_ENTITY_RADIUS) / 16.0D);
-        int l2 = MathHelper.floor((aabb.minZ - World.MAX_ENTITY_RADIUS) / 16.0D);
-        int i3 = MathHelper.ceil((aabb.maxZ + World.MAX_ENTITY_RADIUS) / 16.0D);
+        int j2 = MathHelper.floor((aabb.minX - ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
+        int k2 = MathHelper.ceil((aabb.maxX + ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
+        int l2 = MathHelper.floor((aabb.minZ - ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
+        int i3 = MathHelper.ceil((aabb.maxZ + ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
         List<T> list = Lists.<T>newArrayList();
 
         for (int j3 = j2; j3 < k2; ++j3)
@@ -248,8 +250,8 @@ public class LightUtils {
      */
     public static <T extends Entity> void getEntitiesOfTypeWithinAABB(Chunk chunk, Class <? extends T > entityClass, AxisAlignedBB aabb, List<T> listToFill, Predicate <? super T > filter)
     {
-        int i = MathHelper.floor((aabb.minY - World.MAX_ENTITY_RADIUS) / 16.0D);
-        int j = MathHelper.floor((aabb.maxY + World.MAX_ENTITY_RADIUS) / 16.0D);
+        int i = MathHelper.floor((aabb.minY - ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
+        int j = MathHelper.floor((aabb.maxY + ClientProxy.mcinstance.world.getMaxEntityRadius()) / 16.0D);
         i = MathHelper.clamp(i, 0, chunk.getEntityLists().length - 1);
         j = MathHelper.clamp(j, 0, chunk.getEntityLists().length - 1);
 
@@ -259,7 +261,7 @@ public class LightUtils {
             while (iter.hasNext())
             {
             	T entity = (T)iter.next();
-                if (entity.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply(entity)))
+                if (entity.getBoundingBox().intersects(aabb) && (filter == null || filter.apply(entity)))
                 {
                     listToFill.add(entity);
                 }
@@ -271,11 +273,23 @@ public class LightUtils {
     	
     	if (world != null) {
         	Chunk chunk = world.getChunk(chunkX, chunkZ);
-        	ILitChunkCache litChunkCache = chunk.getCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY, null);                		
+        	ILitChunkCache litChunkCache = chunk.getCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY, null).orElse(new DummyChunkCache());;                		
         	return litChunkCache;    		
     	}
     	// If the lightworker is still running but the world is not loaded
     	return new DummyChunkCache();
+    }
+    
+    private static Boolean hasOptifine;
+    public static boolean hasOptifine() {
+        if (hasOptifine == null) {
+            try {
+                hasOptifine = Class.forName("optifine.OptiFineTweaker") != null;
+            } catch (ClassNotFoundException e) {
+                hasOptifine = false;
+            }
+        }
+        return hasOptifine;
     }
             
 }

@@ -3,10 +3,11 @@ package lakmoore.sel.common;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.util.Iterator;
-
-import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.common.FMLLog;
+//
+//import net.minecraft.launchwrapper.IClassTransformer;
+//import net.minecraft.launchwrapper.Launch;
+//import net.minecraftforge.fml.common.FMLLog;
+import java.util.Set;
 
 import org.apache.logging.log4j.Level;
 import org.objectweb.asm.ClassReader;
@@ -18,12 +19,14 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
+import cpw.mods.modlauncher.api.ITransformer;
+
 /**
  * 
  * @author LakMoore
  *
  */
-public class Transformer implements IClassTransformer {
+public class Transformer {
 	
 	private final String constructorName = "<init>";
 
@@ -53,14 +56,14 @@ public class Transformer implements IClassTransformer {
 	private final String classVertexLighterSmoothAoName = "net.minecraftforge.client.model.pipeline.VertexLighterSmoothAo";  						// 
 
 	private static void log(String message) {
-		FMLLog.info("%s", message);
+		System.out.format("%s\n", message);
 	}
 
 	private static void error(String message) {
-		FMLLog.log("SmoothEntityLights", Level.ERROR, "%s", message);
+		System.out.format("%s\n", message);
+//		FMLLog.log("SmoothEntityLights", Level.ERROR, "%s", message);
 	}
 
-	@Override
 	public byte[] transform(String name, String newName, byte[] bytes) {
 		boolean obf = !name.equals(newName);
 		
@@ -222,7 +225,7 @@ public class Transformer implements IClassTransformer {
 		// at the time WorldClient is being transformed
 		// PlayerEntitySP for example
 		// By specifying FML's ClassLoader, getCommonSuperClass() no longer fails
-		writer.setClassLoader(Launch.classLoader);
+//		writer.setClassLoader(Launch.classLoader);
 		classNode.accept(writer);		
 		return writer.toByteArray();
 	}
@@ -327,4 +330,5 @@ public class Transformer implements IClassTransformer {
 		return writer.toByteArray();
 
 	}
+
 }

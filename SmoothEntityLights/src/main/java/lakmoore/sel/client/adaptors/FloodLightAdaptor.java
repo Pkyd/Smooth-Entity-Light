@@ -3,9 +3,9 @@ package lakmoore.sel.client.adaptors;
 import java.util.ArrayList;
 
 import lakmoore.sel.client.Config;
-import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -64,20 +64,24 @@ public class FloodLightAdaptor extends BaseAdaptor
 	@Override
     public int getLightLevel()
     {		
-        if (thePlayer != null && thePlayer.isEntityAlive() && !SEL.disabled)
+        if (thePlayer != null && thePlayer.isAlive() && !SEL.disabled)
         {
             lightLevel = 0;
         	for (ItemStack item : thePlayer.getHeldEquipment()) {
-                lightLevel = LightUtils.maxLight(lightLevel, Config.floodLights.getLightFromItemStack(item));        		
+        		if (Config.floodLights.contains(item.getTranslationKey())) {
+        			lightLevel = 15;
+        			break;
+        		}
         	}
         	
         	// Considers eye-height
-        	Vec3d origin = thePlayer.getPositionEyes(1.0f);
+        	Vec3d origin = thePlayer.getEyePosition(1.0f);
         	
         	for (PartialLightAdaptor light: lights) {
         		
             	if (lightLevel == 0) {
-            		light.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+            		// Keep the lights in the player's chunk and don't move them too often
+            		light.entity.setPosition(thePlayer.chunkCoordX * 16, thePlayer.chunkCoordY, thePlayer.chunkCoordZ * 16);
             		light.lightLevel = 0;
             	} else {
                     Vec3d look = getVector(thePlayer.rotationYaw + yaw[light.Id], thePlayer.rotationPitch + pitch[light.Id]);
@@ -94,7 +98,7 @@ public class FloodLightAdaptor extends BaseAdaptor
                     else
                     {
                     	light.lightLevel = 0;
-                    	light.entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+                		light.entity.setPosition(thePlayer.chunkCoordX * 16, thePlayer.chunkCoordY, thePlayer.chunkCoordZ * 16);
                     }	            		
             	}
 
@@ -126,7 +130,7 @@ public class FloodLightAdaptor extends BaseAdaptor
     public class DummyEntity extends Entity
     {
         public DummyEntity(World par1World) { 
-        	super(par1World); 
+        	super(EntityType.ITEM, par1World); 
         	this.height = 0f;
         	this.width = 0f;
         	
@@ -134,12 +138,16 @@ public class FloodLightAdaptor extends BaseAdaptor
 //        	this.height = 0.5f;
 //        	this.width = 0.5f;        	
         }
+        
         @Override
-        protected void entityInit(){}
-        @Override
-        protected void readEntityFromNBT(NBTTagCompound var1){}
-        @Override
-        protected void writeEntityToNBT(NBTTagCompound var1){}
+		protected void registerData() {
+		}
+		@Override
+		protected void readAdditional(NBTTagCompound compound) {
+		}
+		@Override
+		protected void writeAdditional(NBTTagCompound compound) {
+		}
     }
 
 }

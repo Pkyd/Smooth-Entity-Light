@@ -7,6 +7,8 @@ import javax.vecmath.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.capabilities.LitChunkCacheCapability;
@@ -20,17 +22,16 @@ import lakmoore.sel.client.adaptors.PartialLightAdaptor;
 import lakmoore.sel.client.adaptors.PlayerOtherAdaptor;
 import lakmoore.sel.client.adaptors.PlayerSelfAdaptor;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.ViewFrustum;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.vertex.VertexBuffer;
 import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.command.CommandSource;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
@@ -48,18 +49,21 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.fml.client.FMLClientHandler;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 
-@SideOnly(Side.CLIENT)
 public class EventHandler {
+	
+    @SuppressWarnings("unchecked")
+    @SubscribeEvent
+	public void serverStarting(FMLServerStartingEvent event) {
+    	// Setup Commands in this event
+	    event.getCommandDispatcher().register((LiteralArgumentBuilder<CommandSource>) CommandSEL.register());
+    }
 
-	@SideOnly(Side.CLIENT)
 	@SubscribeEvent
 	public void onTick(TickEvent.ClientTickEvent event) {
 		if (event.phase == Phase.END && ClientProxy.mcinstance.world != null
@@ -90,7 +94,6 @@ public class EventHandler {
 	 * event I can find where it is not necessary to re-build the Frustum on the
 	 * Camera!
 	 */
-	@SideOnly(Side.CLIENT)
 	@SubscribeEvent
 	public void afterRender(RenderWorldLastEvent event) {
 		// ClientProxy.mcProfiler.startSection(SEL.modId + ":afterRender");
@@ -298,13 +301,13 @@ public class EventHandler {
 
 	@SubscribeEvent
 	public void onDebugOverlay(RenderGameOverlayEvent.Text event) {
-		if (Minecraft.getMinecraft().gameSettings.showDebugInfo) {
+		if (ClientProxy.mcinstance.gameSettings.showDebugInfo) {
 			// There used to be some interesting stats to look at!
 			event.getLeft().add("DL " + (SEL.disabled ? "OFF" : "ON"));
 
 			// Light levels
-			Entity player = Minecraft.getMinecraft().player;
-			World world = Minecraft.getMinecraft().world;
+			Entity player = ClientProxy.mcinstance.player;
+			World world = ClientProxy.mcinstance.world;
 			BlockPos pos = player.getPosition();
 			IBlockState state = world.getBlockState(pos);
 			ILitChunkCache litChunkCache = LightUtils.getLitChunkCache(world, pos.getX() >> 4, pos.getZ() >> 4);
@@ -340,7 +343,6 @@ public class EventHandler {
 	}
 
 	@SubscribeEvent
-	@SideOnly(Side.CLIENT)
 	public void onAttachChunkCapabilities(AttachCapabilitiesEvent<Chunk> event) {
 		Chunk chunk = event.getObject();
 		if (chunk == null) {
@@ -353,12 +355,11 @@ public class EventHandler {
 	}
 
 	@SubscribeEvent
-	@SideOnly(Side.CLIENT)
 	public void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
 		Entity entity = event.getObject();
-		if (entity == null || entity.isDead)
+		if (entity == null || !entity.isAlive())
 			return;
-
+		
 		World world = entity.getEntityWorld();
 		if (world == null || !world.isRemote)
 			return;
@@ -380,27 +381,11 @@ public class EventHandler {
 		} else if (entity instanceof EntityLivingBase && !(entity instanceof EntityPlayer)) {
 			int minLight = 0;
 			boolean catchesFire = false;
-
-			if (Config.lightBurningEntities) {
-				if (!SEL.lightValueMap.containsKey(entity.getClass())) {
-					boolean value = Config.getMobFire(entity.getClass().getSimpleName());
-
-					SEL.lightValueMap.put(entity.getClass(), value);
-					catchesFire = value;
-				} else {
-					catchesFire = SEL.lightValueMap.get(entity.getClass());
-				}
-			}
+			
+			catchesFire = Config.lightBurningEntities && !Config.nonFlamableMobs.contains(entity.getClass().getSimpleName());
 
 			if (Config.lightGlowingEntities) {
-				if (!SEL.glowValueMap.containsKey(entity.getClass())) {
-					int value = Config.getMobGlow(entity);
-					SEL.glowValueMap.put(entity.getClass(), value);
-					minLight = value;
-				} else {
-					minLight = SEL.glowValueMap.get(entity.getClass());
-				}
-
+				minLight = Config.getMobGlow(entity);
 			}
 
 			if (catchesFire) {
@@ -477,17 +462,15 @@ public class EventHandler {
 	}
 
 	private void updateFrustum() {
-		ViewFrustum viewFrustum = null;
 		try {
-			viewFrustum = (ViewFrustum) ClientProxy.viewFrustumField.get(ClientProxy.mcinstance.renderGlobal);
-			SEL.lightWorker.updateFrustum(viewFrustum);
+			SEL.lightWorker.updateFrustum(ClientProxy.mcinstance.worldRenderer.viewFrustum);
 		} catch (Exception e) {
 			System.out.println(e.toString());
 		}
 	}
 
 	private void checkForOptifine() {
-		if (FMLClientHandler.instance().hasOptifine() && !Config.optifineOverride) {
+		if (LightUtils.hasOptifine() && !Config.optifineOverride) {
 			ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
 					"Optifine is loaded.  Disabling Smooth Entity Light.  Check the config file to override."));
 			SEL.disabled = true;
