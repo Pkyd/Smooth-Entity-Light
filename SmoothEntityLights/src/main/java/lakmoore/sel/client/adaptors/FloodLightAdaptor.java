@@ -94,14 +94,15 @@ public class FloodLightAdaptor extends BaseAdaptor
             	} else {
                     Vec3d look = getVector(thePlayer.rotationYaw + yaw[light.Id], thePlayer.rotationPitch + pitch[light.Id]);
                     
-                    look = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
-                    RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, look);
+                    Vec3d beam = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
+                    RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, beam);
                     if (rtr != null)
                     {
                         int dist = (int) Math.round(thePlayer.getDistance(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z));
                         dist = Math.max(0, dist - freeDistance);
                         light.lightLevel = Math.max(0, lightLevel - dist);
-                        light.entity.setPosition(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z);
+                        
+                        light.entity.setPosition(rtr.hitVec.x - (look.x * 0.7f), rtr.hitVec.y - (look.y * 0.7f), rtr.hitVec.z - (look.z * 0.7f));
                     }
                     else
                     {
