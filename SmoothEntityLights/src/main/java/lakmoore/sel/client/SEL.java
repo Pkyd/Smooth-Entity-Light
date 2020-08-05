@@ -1,35 +1,31 @@
 package lakmoore.sel.client;
 
 import java.util.HashMap;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-
 import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
-import net.minecraft.command.CommandSource;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.dimension.DimensionType;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.InterModComms;
-import net.minecraftforge.fml.InterModComms.IMCMessage;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 
 /**
  * 
@@ -80,7 +76,12 @@ public class SEL {
     public static ModConfig modConfig;
 
     public SEL() {
-    	log.info(SEL.MARKER, "we are here - constructor");
+    	// Do this on the main thread
+    	ModLoadingContext.get().registerConfig(Type.CLIENT, Config.CLIENT_SPEC);
+    	ModLoadingContext.get().registerConfig(Type.SERVER, Config.SERVER_SPEC);
+
+    	// Event Handler for both sides
+        MinecraftForge.EVENT_BUS.register(SEL.class);
     }
 
     @SubscribeEvent
@@ -90,15 +91,13 @@ public class SEL {
     	// Things to do:  
     	//      Creating and reading the config files
     	//      Registering Capabilities
-    	log.info(SEL.MARKER, "we are here - setupCommon");
         proxy.setupCommon(evt);
     }
 
     @SubscribeEvent
     public static void setupClient(FMLClientSetupEvent evt) {
     	// Second event (sided) - not in the main thread
-    	// Client only - Do Keybindings???
-    	
+    	// Client only - Do Keybindings???    	
         proxy.setupClient(evt);
     }
         
@@ -135,9 +134,12 @@ public class SEL {
 	
     @SubscribeEvent
 	public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent) {
-		if (configEvent.getConfig().getSpec() == Config.CLIENT_SPEC) {
-			SEL.modConfig = configEvent.getConfig();
-			Config.bakeConfig();
+		if (configEvent.getConfig().getModId().equals(SEL.modId)) {
+			Config.bakeConfig(configEvent.getConfig().getType());
+			
+			if (configEvent.getConfig().getType() == Type.CLIENT) {
+				SEL.modConfig = configEvent.getConfig();				
+			}
 		}
 	}
     

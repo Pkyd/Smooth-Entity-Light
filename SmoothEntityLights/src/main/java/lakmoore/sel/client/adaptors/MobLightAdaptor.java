@@ -34,15 +34,15 @@ public class MobLightAdaptor extends BaseAdaptor
 			{
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_gold.png"))
 				{
-					return Config.lightValueMap.get(new ItemStack(Items.GOLDEN_HORSE_ARMOR).getTranslationKey()); // horsearmorgold
+					return Config.lightValueMap.get(Items.GOLDEN_HORSE_ARMOR.getRegistryName()); // horsearmorgold
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_iron.png"))
 				{
-					return Config.lightValueMap.get(new ItemStack(Items.IRON_HORSE_ARMOR).getTranslationKey()); // horsearmormetal
+					return Config.lightValueMap.get(Items.IRON_HORSE_ARMOR.getRegistryName()); // horsearmormetal
 				}
 				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_diamond.png"))
 				{
-					return Config.lightValueMap.get(new ItemStack(Items.DIAMOND_HORSE_ARMOR).getTranslationKey()); // butt stallion
+					return Config.lightValueMap.get(Items.DIAMOND_HORSE_ARMOR.getRegistryName()); // butt stallion
 				}
 			}
 		}
@@ -53,9 +53,11 @@ public class MobLightAdaptor extends BaseAdaptor
 	private int getMobEquipMaxLight(EntityLivingBase ent)
 	{
 		int light = 0;
-		for (ItemStack item : ent.getEquipmentAndArmor())
+		for (ItemStack stack : ent.getEquipmentAndArmor())
 		{
-			light = LightUtils.maxLight(light, Config.lightValueMap.get(item.getTranslationKey()));
+			if (!stack.isEmpty()) {				
+				light = LightUtils.maxLight(light, Config.lightValueMap.getOrDefault(stack.getItem().getRegistryName().toString(), 0));
+			}
 		}
 		return light;
 	}

@@ -1,3 +1,9 @@
+4.0.2 (for MC1.13.2)
+Updated for MC1.13.2
+New Config files sel-client.toml and sel-server.toml.  
+Server config is only used if "Allow Client to Override Server Config" is set to false.
+Few minor fixes and stability improvements
+
 4.0.1 (for MC1.12.2)
 Fixed the problem with the transparent render layer (elegant solution)
 Fixed the problem with Fluids using a completely different renderer (horrible hack)

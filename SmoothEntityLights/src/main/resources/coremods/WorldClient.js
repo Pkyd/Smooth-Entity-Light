@@ -1,6 +1,6 @@
 var constructorName = "<init>";
-var classVertexLighterOLD = "net/minecraftforge/client/model/pipeline/VertexLighterFlat";
-var classVertexLighterNEW = "lakmoore/sel/client/model/pipeline/VertexLighterSEL";
+var classWorldNameOLD = "net/minecraft/world/World";
+var classWorldNameNEW = "lakmoore/sel/world/WorldSEL";
 
 /**
  * This function is called by Forge before any minecraft classes are loaded to
@@ -9,31 +9,33 @@ var classVertexLighterNEW = "lakmoore/sel/client/model/pipeline/VertexLighterSEL
  * @return {object} All the transformers of this coremod.
  */
 function initializeCoreMod() {
-	print("Initializing SEL VertexLighterSmoothAo Coremod");
+	print("Initializing SEL WorldClient Coremod");
 	return {
-		"SEL VertexLighterSmoothAo Transformer": {
+		"SEL WorldClient Transformer": {
 			"target": {
 				"type": "CLASS",
-				"name": "net.minecraftforge.client.model.pipeline.VertexLighterSmoothAo"
+				"name": "net.minecraft.client.multiplayer.WorldClient"
 			},
 			"transformer": function(classNode) {
-				print("Patching VertexLighterSmoothAo");
-				classNode.superName = classVertexLighterNEW;
+				print("Patching WorldClient");
+				
+				classNode.superName = classWorldNameNEW;
+				
 				var methods = classNode.methods;
 				for (var i in methods) {
 					var method = methods[i];
 					if (method.name == constructorName) {
-						print("Inside VertexLighterSmoothAo Init");
+						print("Inside WorldClient Init");
 						
 						for each (var instruction in method.instructions.toArray()) {
 							if (
 								instruction.owner && 
-								instruction.owner.equals(classVertexLighterOLD) &&
-								instruction.name &&
+								instruction.owner.equals(classWorldNameOLD) &&
+								instruction.name && 
 								instruction.name.equals(constructorName)
 							) {
-								instruction.owner = classVertexLighterNEW;
-								print("Patched VertexLighterSmoothAo Init!");
+								instruction.owner = classWorldNameNEW;
+								print("Patched WorldClient Init!");
 								break;
 							}
 						}

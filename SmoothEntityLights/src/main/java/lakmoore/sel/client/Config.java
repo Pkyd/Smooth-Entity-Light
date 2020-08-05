@@ -1,5 +1,6 @@
 package lakmoore.sel.client;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -12,7 +13,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.monster.EntityBlaze;
 import net.minecraft.entity.monster.EntityMagmaCube;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.config.ModConfig.Type;
 
 public class Config 
 {
@@ -23,14 +26,21 @@ public class Config
     static final int LIGHT_LEVEL_MAGMA_CUBE = 8;
 
 	// Forge Config Boilerplate
-	public static final Client CLIENT;
+	public static final Spec CLIENT;
+	public static final Spec SERVER;
 	public static final ForgeConfigSpec CLIENT_SPEC;
+	public static final ForgeConfigSpec SERVER_SPEC;
 	static {
-		final Pair<Client, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Client::new);
-		CLIENT_SPEC = specPair.getRight();
-		CLIENT = specPair.getLeft();
-	}
+		final Pair<Spec, ForgeConfigSpec> specPairClient = new ForgeConfigSpec.Builder().configure(Spec::new);
+		CLIENT_SPEC = specPairClient.getRight();
+		CLIENT = specPairClient.getLeft();
+
+		final Pair<Spec, ForgeConfigSpec> specPairServer = new ForgeConfigSpec.Builder().configure(Spec::new);
+		SERVER_SPEC = specPairServer.getRight();
+		SERVER = specPairServer.getLeft();
+}
 	
+    public static boolean allowClientOverride = true;
     public static boolean lightBurningEntities;
     public static boolean lightGlowingEntities;
     public static boolean lightChargingCreepers;
@@ -43,12 +53,12 @@ public class Config
     public static boolean lightXP;
     public static boolean optifineOverride;
     public static boolean simpleMode;
-    public static List<String> notWaterProofItems;
-    public static List<String> floodLights;
+    public static List<ResourceLocation> notWaterProofItems;
+    public static List<ResourceLocation> floodLights;
     public static List<Integer> dimensionBlacklist;
     public static List<String> nonFlamableMobs;
     
-    public static Map<String, Integer> lightValueMap;
+    public static Map<ResourceLocation, Integer> lightValueMap;
     private static Map<String, Integer> glowValueMap;
     
     // ====== GETTERS =======
@@ -62,7 +72,11 @@ public class Config
 
         Integer configValue = Config.glowValueMap.putIfAbsent(entity.getClass().getSimpleName(), value);
         if (configValue == null) {
-            SEL.modConfig.getConfigData().set(Config.CLIENT.glowingMobs.getPath(), Config.glowValueMap);
+        	List<String> saveAs = new ArrayList<String>();
+        	Config.glowValueMap.forEach((name, lightVal) -> {
+        		saveAs.add(String.format("%s=%s", name.toString(), lightVal));    		
+        	});    	
+            SEL.modConfig.getConfigData().set(Config.CLIENT.glowingMobs.getPath(), saveAs);
             SEL.modConfig.save();
             return value;        	
         } else {
@@ -72,57 +86,88 @@ public class Config
         
     // ====== SETTERS =======
     
-    public static void setHeldLight(ItemStack item, int lightLevel)
+    public static void setHeldLight(ItemStack stack, int lightLevel)
     {
-    	Config.lightValueMap.putIfAbsent(item.getTranslationKey(), lightLevel);
-        SEL.modConfig.getConfigData().set(Config.CLIENT.itemsMap.getPath(), Config.lightValueMap);
+    	Config.lightValueMap.put(stack.getItem().getRegistryName(), lightLevel);
+    	List<String> saveAs = new ArrayList<String>();
+    	Config.lightValueMap.forEach((name, value) -> {
+    		saveAs.add(String.format("%s=%s", name.toString(), value));    		
+    	});    	
+        SEL.modConfig.getConfigData().set(Config.CLIENT.itemsMap.getPath(), saveAs);
         SEL.modConfig.save();
     }
 
-    public static void toggleFloodlight(ItemStack item)
+    public static void toggleFloodlight(ItemStack stack)
     {
-        if (Config.floodLights.contains(item.getTranslationKey()))
-        	Config.floodLights.remove(item.getTranslationKey());            
+        if (Config.floodLights.contains(stack.getItem().getRegistryName()))
+        	Config.floodLights.remove(stack.getItem().getRegistryName());            
         else
-        	Config.floodLights.add(item.getTranslationKey());                      
-      	        
-        SEL.modConfig.getConfigData().set(Config.CLIENT.floodLights.getPath(), Config.floodLights);
+        	Config.floodLights.add(stack.getItem().getRegistryName());                      
+
+    	List<String> saveAs = new ArrayList<String>();
+    	Config.floodLights.forEach((name) -> {
+    		saveAs.add(name.toString());    		
+    	});    	
+
+        SEL.modConfig.getConfigData().set(Config.CLIENT.floodLights.getPath(), saveAs);
         SEL.modConfig.save();
     }
 
-    public static void toggleWaterproof(ItemStack item)
+    public static void toggleWaterproof(ItemStack stack)
     {
-        if (Config.notWaterProofItems.contains(item.getTranslationKey()))
-        	Config.notWaterProofItems.remove(item.getTranslationKey());            
+        if (Config.notWaterProofItems.contains(stack.getItem().getRegistryName()))
+        	Config.notWaterProofItems.remove(stack.getItem().getRegistryName());            
         else
-        	Config.notWaterProofItems.add(item.getTranslationKey());                      
+        	Config.notWaterProofItems.add(stack.getItem().getRegistryName());                      
 
-        SEL.modConfig.getConfigData().set(Config.CLIENT.notWaterProofItems.getPath(), Config.notWaterProofItems);
+    	List<String> saveAs = new ArrayList<String>();
+    	Config.notWaterProofItems.forEach((name) -> {
+    		saveAs.add(name.toString());    		
+    	});    	
+
+        SEL.modConfig.getConfigData().set(Config.CLIENT.notWaterProofItems.getPath(), saveAs);
         SEL.modConfig.save();
     }
     
     // ======= BAKE CONFIG =======
+	public static void bakeConfig(Type type) {
+		
+		if (type == Type.SERVER) {
+			allowClientOverride = SERVER.allowClientOverride.get();			
+			if (!allowClientOverride) {
+				getConfig(SERVER);				
+			}
+		} else {
+			if (allowClientOverride) {
+				getConfig(CLIENT);				
+			}
+		}		
+	}
 	
-	public static void bakeConfig() {
-		lightBurningEntities = CLIENT.lightBurningEntities.get();
-		lightGlowingEntities = CLIENT.lightGlowingEntities.get();
-		lightChargingCreepers = CLIENT.lightChargingCreepers.get();
-		lightDroppedItems = CLIENT.lightDroppedItems.get();
-		lightMobEquipment = CLIENT.lightMobEquipment.get();
-		lightFlamingArrows = CLIENT.lightFlamingArrows.get();
-		lightFloodLight = CLIENT.lightFloodLight.get();
-		lightThisPlayer = CLIENT.lightThisPlayer.get();
-		lightOtherPlayers = CLIENT.lightOtherPlayers.get();
-		lightXP = CLIENT.lightXP.get();
-		optifineOverride = CLIENT.optifineOverride.get();
-		simpleMode = CLIENT.simpleMode.get();
-		notWaterProofItems = CLIENT.notWaterProofItems.get();
-		floodLights = CLIENT.floodLights.get();
-		dimensionBlacklist = CLIENT.dimensionBlacklist.get();		
-		nonFlamableMobs = CLIENT.nonFlamableMobs.get();		
+	private static void getConfig(Spec specToUse) {
+		lightBurningEntities = specToUse.lightBurningEntities.get();
+		lightGlowingEntities = specToUse.lightGlowingEntities.get();
+		lightChargingCreepers = specToUse.lightChargingCreepers.get();
+		lightDroppedItems = specToUse.lightDroppedItems.get();
+		lightMobEquipment = specToUse.lightMobEquipment.get();
+		lightFlamingArrows = specToUse.lightFlamingArrows.get();
+		lightFloodLight = specToUse.lightFloodLight.get();
+		lightThisPlayer = specToUse.lightThisPlayer.get();
+		lightOtherPlayers = specToUse.lightOtherPlayers.get();
+		lightXP = specToUse.lightXP.get();
+		optifineOverride = specToUse.optifineOverride.get();
+		simpleMode = specToUse.simpleMode.get();
+		notWaterProofItems = specToUse.notWaterProofItems.get().stream().map((str) -> {
+			return new ResourceLocation(str);
+		}).collect(Collectors.toList());
+		floodLights = specToUse.floodLights.get().stream().map((str) -> {
+			return new ResourceLocation(str);
+		}).collect(Collectors.toList());
+		dimensionBlacklist = specToUse.dimensionBlacklist.get();		
+		nonFlamableMobs = specToUse.nonFlamableMobs.get();		
 
-		lightValueMap = getMapFromList(CLIENT.itemsMap.get());
-		glowValueMap = getMapFromList(CLIENT.glowingMobs.get());
+		lightValueMap = getResourceMapFromList(specToUse.itemsMap.get());
+		glowValueMap = getMapFromList(specToUse.glowingMobs.get());
 	}
 	
 	private static Map<String, Integer> getMapFromList(List<String> list) {
@@ -135,12 +180,24 @@ public class Config
 				)
 		);
 	}
-	
-	public static class Client {
+
+	private static Map<ResourceLocation, Integer> getResourceMapFromList(List<String> list) {
+		return list.stream().map(configString -> {
+			return configString.split("=");
+		}).collect(
+				Collectors.toMap(
+						result -> new ResourceLocation(result[0]), 
+						result -> Integer.parseInt(result[1])
+				)
+		);
+	}
+
+	public static class Spec {
 				
 	    /*
 	     * Configurable flags
 	     */
+		public final ForgeConfigSpec.BooleanValue allowClientOverride;
 	    public final ForgeConfigSpec.BooleanValue lightBurningEntities;
 	    public final ForgeConfigSpec.BooleanValue lightGlowingEntities;
 	    public final ForgeConfigSpec.BooleanValue lightChargingCreepers;
@@ -162,66 +219,66 @@ public class Config
 	    
 	    public final ForgeConfigSpec.ConfigValue<List<Integer>> dimensionBlacklist;
 	    	    	            
-	    Client(ForgeConfigSpec.Builder builder) {
+	    Spec(ForgeConfigSpec.Builder builder) {
 	    	
-	    	builder.comment("Each Adaptor is responsible for a certain type of entity light.  Turn them on or off here.").push("adaptors");
+	    	builder.comment("Each Adaptor is responsible for a certain type of entity light.  Turn them on or off here.").push("Adaptors");
 	    		    			    		
 			this.lightBurningEntities = builder
-			    .comment("Set to false to disable light from mobs on fire.")
+			    .comment("\nSet to false to disable light from mobs on fire.")
 				.translation("sel.configgui.lightBurningEntities")
 				.worldRestart()
 				.define("Light from Burning Entities", true);
 
 			this.lightGlowingEntities = builder
-				    .comment("Set to false to disable natural light from mobs.")
+				    .comment("\nSet to false to disable natural light from mobs.")
 					.translation("sel.configgui.lightGlowingEntities")
 					.worldRestart()
 					.define("Entities Naturally Glow", true);
 	    	
 			this.lightChargingCreepers = builder
-				    .comment("Set to false to disable light from creepers while charging.")
+				    .comment("\nSet to false to disable light from creepers while charging.")
 					.translation("sel.configgui.lightChargingCreepers")
 					.worldRestart()
 					.define("Light from Charging Creepers", true);
 
 			this.lightDroppedItems = builder
-				    .comment("Set to false to disable light from dropped items, like torches.")
+				    .comment("\nSet to false to disable light from dropped items, like torches.")
 					.translation("sel.configgui.lightDroppedItems")
 					.worldRestart()
 					.define("Light from Dropped Items", true);	
 	        
 			this.lightMobEquipment = builder
-				    .comment("Set to false to disable light from mobs holding torches, etc.")
+				    .comment("\nSet to false to disable light from mobs holding torches, etc.")
 					.translation("sel.configgui.lightMobEquipment")
 					.worldRestart()
 					.define("Light from Mob Equipment", true);
 
 			this.lightFlamingArrows = builder
-				    .comment("Set to false to disable light from flaming arrows.")
+				    .comment("\nSet to false to disable light from flaming arrows.")
 					.translation("sel.configgui.lightFlamingArrows")
 					.worldRestart()
 					.define("Light from Flaming Arrows", true);
 
 			this.lightFloodLight = builder
-				    .comment("Set to false to disable flood light (flash-light) from certain held items.")
+				    .comment("\nSet to false to disable flood light (flash-light) from certain held items.")
 					.translation("sel.configgui.lightFloodLight")
 					.worldRestart()
 					.define("Flood Light", true);
 
 			this.lightXP = builder
-				    .comment("Set to false to disable light from XP orbs.")
+				    .comment("\nSet to false to disable light from XP orbs.")
 					.translation("sel.configgui.lightXP")
 					.worldRestart()
 					.define("XP Light", true);
 
 			this.lightThisPlayer = builder
-				    .comment("Set to false to disable light from held items.")
+				    .comment("\nSet to false to disable light from held items.")
 					.translation("sel.configgui.lightThisPlayer")
 					.worldRestart()
 					.define("Light from Held Items", true);
 
 			this.lightOtherPlayers = builder
-				    .comment("Set to false to disable light from items held by other players.")
+				    .comment("\nSet to false to disable light from items held by other players.")
 					.translation("sel.configgui.lightOtherPlayers")
 					.worldRestart()
 					.define("Light from Other Players", true);
@@ -230,16 +287,16 @@ public class Config
 
 	        // ============================
 	    	
-	    	builder.comment("Floodlights/Flashlights can simulate a single point light or a cone of light").push("floodlights");
+	    	builder.comment("Floodlights/Flashlights can simulate a single point light or a cone of light").push("Floodlights");
 
 	    	this.simpleMode = builder
-				    .comment("Simulate a single point light instead of a cone of light")
+				    .comment("\nSimulate a single point light instead of a cone of light")
 					.translation("sel.configgui.simpleMode")
 					.worldRestart()
 					.define("Simple Floodlight Mode", false);
 	    	
 	    	this.floodLights = builder
-	    			.comment("List of comma separated items that shine floodlight while held.")
+	    			.comment("\nList of comma separated items that shine floodlight while held.")
 	    			.translation("sel.configgui.floodLights")
 					.worldRestart()
 					.define("Flood Light Items", Lists.newArrayList("ender_eye"));
@@ -249,9 +306,9 @@ public class Config
 	        // ============================
 	        
 	    	builder.comment("General settings and light values").push("General");
-	    	
+	    		    	
 	    	this.itemsMap = builder
-	    			.comment("List of items that shine light at the given brightness when dropped in the World or held in player's or mob's hands.")
+	    			.comment("\nList of items that shine light at the given brightness when dropped in the World or held in player's or mob's hands.")
 	    			.translation("sel.configgui.itemsList")
 					.worldRestart()
 					.define("Light Items", Lists.newArrayList(
@@ -267,7 +324,7 @@ public class Config
 					);
 
 	    	this.notWaterProofItems = builder
-	    			.comment("List of items that do not give off light when dropped and in water, have to be present in Light Items.")
+	    			.comment("\nList of items that do not give off light when dropped and in water, have to be present in Light Items.")
 	    			.translation("sel.configgui.notWaterProofItems")
 					.worldRestart()
 					.define("Items Turned Off By Water", Lists.newArrayList(
@@ -277,20 +334,20 @@ public class Config
 					);
 
 	    	this.optifineOverride = builder
-				    .comment("Optifine has an Entity Lights of its own.  This mod will turn itself off if Optifine is loaded.\nSet this to true if you aren't going to use Optifine's Dynamic Lights.")
+				    .comment("\nOptifine has an Entity Lights of its own.  This mod will turn itself off if Optifine is loaded.\nSet this to true if you aren't going to use Optifine's Dynamic Lights.")
 					.translation("sel.configgui.optifineOverride")
 					.worldRestart()
 					.define("Optifine Override", false);
 
 	    	this.dimensionBlacklist = builder
-	    			.comment("List of IDs for Dimensions where Entity Lights should always be disabled.")
+	    			.comment("\nList of IDs for Dimensions where Entity Lights should always be disabled.")
 	    			.translation("sel.configgui.dimensionBlacklist")
 					.worldRestart()
 					.define("Dimension Blacklist", Lists.newArrayList()
 					);	    	
 	    	
 	    	this.glowingMobs = builder
-	    			.comment("List of Mobs that will naturally radiate light with the given brightness.")
+	    			.comment("\nList of Mobs that will naturally radiate light with the given brightness.")
 	    			.translation("sel.configgui.glowingMobs")
 					.worldRestart()
 					.define("Glowing Entities", Lists.newArrayList(
@@ -320,7 +377,7 @@ public class Config
 					);
 
 	    	this.nonFlamableMobs = builder
-	    			.comment("If the mob should NOT give off light when on fire, add their name to this list.")
+	    			.comment("\nIf the mob should NOT give off light when on fire, add their name to this list.")
 	    			.translation("sel.configgui.nonFlamableMobs")
 					.worldRestart()
 					.define("Flaming Mob Blacklist", Lists.newArrayList(
@@ -331,6 +388,18 @@ public class Config
 		    builder.pop();
 
 	        // ============================
+		    
+		    builder
+		    	.comment("There are config files for both server and client for this client-side mod.\nUse this setting if you run a server and you don't want your users to be able to change their config.\nCould be used to force entity light on (for a nice effect) or force lights off (for increased difficulty).")
+		    	.push("Client Override");
+
+		    this.allowClientOverride = builder
+	    			.comment("\nSet to false on the server to force clients to use server side config only.\nChanging this value on the Client has no effect.")
+	    			.translation("sel.configgui.clientOverride")
+	    			.worldRestart()
+	    			.define("Allow Client to Override Server Config", true);
+
+		    builder.pop();
 	        
 	    }
 	    

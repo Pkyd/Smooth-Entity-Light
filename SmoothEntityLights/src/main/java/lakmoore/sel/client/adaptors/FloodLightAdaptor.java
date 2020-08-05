@@ -32,6 +32,7 @@ public class FloodLightAdaptor extends BaseAdaptor
     public static float[] pitch = {0f, 0f, 0f, -8f, 8f};
     public static float[] yaw = {0f, 8f, -8f, 0f, 0f};
     public static int lightLevel = 0;
+    private int lastLight = 0;
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
@@ -54,7 +55,7 @@ public class FloodLightAdaptor extends BaseAdaptor
         for (int i = 0; i < count; i++)
         {
         	dummyEntity = new DummyEntity(entity.world);      
-            entity.setPosition(thePlayer.posX, thePlayer.posY, thePlayer.posZ);
+            entity.setPosition(thePlayer.chunkCoordX * 16, thePlayer.chunkCoordY, thePlayer.chunkCoordZ * 16);
             thePlayer.world.spawnEntity(dummyEntity);
         }
 
@@ -67,12 +68,19 @@ public class FloodLightAdaptor extends BaseAdaptor
         if (thePlayer != null && thePlayer.isAlive() && !SEL.disabled)
         {
             lightLevel = 0;
-        	for (ItemStack item : thePlayer.getHeldEquipment()) {
-        		if (Config.floodLights.contains(item.getTranslationKey())) {
-        			lightLevel = 15;
+        	for (ItemStack stack : thePlayer.getHeldEquipment()) {
+        		if (Config.floodLights.contains(stack.getItem().getRegistryName())) {
+        			if (lastLight == 0) {
+        				// hack to force two updates when the torch is first turned on
+        				lightLevel = 14;
+        			} else {
+            			lightLevel = 15;        				
+        			}
         			break;
         		}
         	}
+        	
+        	lastLight = lightLevel;
         	
         	// Considers eye-height
         	Vec3d origin = thePlayer.getEyePosition(1.0f);

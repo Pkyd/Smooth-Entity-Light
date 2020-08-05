@@ -12,13 +12,18 @@ import net.minecraft.world.chunk.Chunk;
 public class DummyChunkCache implements ILitChunkCache {
 
 	@Override
-	public void setChunk(Chunk chunk) {
+	public void setChunkPos(int x, int z) {
 		// Do Nothing
 	}
 
 	@Override
-	public Chunk getChunk() {
-		return null;
+	public int getX() {
+		return 0;
+	}
+
+	@Override
+	public int getZ() {
+		return 0;
 	}
 
 	@Override

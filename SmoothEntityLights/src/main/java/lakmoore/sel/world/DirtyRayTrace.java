@@ -47,7 +47,7 @@ public class DirtyRayTrace {
 						IBlockState state = world.getBlockState(thisBlock);
 						if (state != null) {
 							Block block = state.getBlock();
-							if (block != null && block != Blocks.AIR) {
+							if (block != null && !state.isAir(world, thisBlock)) {
 								result += state.getOpacity(world, thisBlock);
 							}						
 						}													

@@ -1,3 +1,4 @@
+var LocalVariableNode = Java.type("org.objectweb.asm.tree.LocalVariableNode")
 var constructorName = "<init>";
 var methodNewVertexLighterName = "lambda$new$0"; 
 var classVertexLighterOLD = "net/minecraftforge/client/model/pipeline/VertexLighterFlat";
@@ -21,6 +22,7 @@ function initializeCoreMod() {
 				print("Patching ForgeBlockModelRenderer");
 				var fields = classNode.fields;
 				for (var i in fields) {
+					var field = fields[i];
 					if (
 						field.signature &&
 						field.signature.equals("Ljava/lang/ThreadLocal<L" + classVertexLighterOLD + ";>;")
@@ -37,8 +39,7 @@ function initializeCoreMod() {
 					if (method.name == methodNewVertexLighterName) {
 						print("Inside ForgeBlockModelRenderer Init");
 						
-						for (var j in method.instructions) {
-							var instruction = method.instructions[j];
+						for each (var instruction in method.instructions.toArray()) {
 							if (
 								instruction.desc && 
 								instruction.desc.equals(classVertexLighterOLD)
@@ -54,7 +55,15 @@ function initializeCoreMod() {
 								print("Patch 2 of ForgeBlockModelRenderer Init!");
 							}
 						}
-						break;
+					}
+					
+					if (
+						method.name &&
+						(method.name == "renderModelSmooth" || method.name == "renderModelFlat") &&
+						method.desc &&
+						method.desc == "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;J)Z"
+					) {
+						method.desc = "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;JLnet/minecraftforge/client/model/data/IModelData;)Z";
 					}
 				}
 

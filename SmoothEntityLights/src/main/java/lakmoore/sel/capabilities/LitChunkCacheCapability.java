@@ -27,8 +27,9 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	private short[][][][] mcLight;
 	private List<Set<BlockPos>> dirtyBlocks;
 	private boolean[] dirtyChunk;
-	private Chunk chunk;
 	private RenderChunk[] renderChunks;
+	private int chunkX;
+	private int chunkZ;
 
 	public LitChunkCacheCapability() {
 		blockLight = new short[16][16][16][16];
@@ -43,15 +44,22 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 	
 	@Override
-	public void setChunk(Chunk chunk) {
-		this.chunk = chunk;
+	public void setChunkPos(int x, int z) {
+		this.chunkX = x;
+		this.chunkZ = z;
 	}
+		
 	
 	@Override
-	public Chunk getChunk() {
-		return this.chunk;
+	public int getX() {
+		return this.chunkX;
 	}
-	
+
+	@Override
+	public int getZ() {
+		return this.chunkZ;
+	}
+
 	@Override
 	public void setRenderChunk(int yChunk, RenderChunk renderChunk) {
 		this.renderChunks[yChunk & 0xF] = renderChunk;

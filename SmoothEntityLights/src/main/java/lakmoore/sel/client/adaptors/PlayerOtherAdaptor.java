@@ -24,8 +24,8 @@ public class PlayerOtherAdaptor extends BaseAdaptor
             else
             {           
                 int lightLevel = 0;
-            	for (ItemStack item : player.getEquipmentAndArmor()) {
-                    lightLevel = LightUtils.maxLight(lightLevel, Config.lightValueMap.get(item.getTranslationKey()));        		
+            	for (ItemStack stack : player.getEquipmentAndArmor()) {
+                    lightLevel = LightUtils.maxLight(lightLevel, Config.lightValueMap.get(stack.getItem().getRegistryName()));        		
             	}
                 return lightLevel;
             }            

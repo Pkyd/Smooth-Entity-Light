@@ -1,12 +1,9 @@
 package lakmoore.sel.client.adaptors;
 
-import java.util.List;
-
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.InterModComms.IMCMessage;
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
@@ -53,10 +50,11 @@ public class PlayerSelfAdaptor extends BaseAdaptor
                 for (ItemStack stack : thePlayer.getEquipmentAndArmor())
                 {
                     if (
-                    	stack != null 
-                    	&& (!inWater || !Config.notWaterProofItems.contains(stack.getTranslationKey())))
+                    	stack != null                     	
+                    	&& !stack.isEmpty()
+                    	&& (!inWater || !Config.notWaterProofItems.contains(stack.getItem().getRegistryName())))
                     {
-                        lightLevel = LightUtils.maxLight(lightLevel, Config.lightValueMap.get(stack.getTranslationKey()));
+                        lightLevel = LightUtils.maxLight(lightLevel, Config.lightValueMap.getOrDefault(stack.getItem().getRegistryName(), 0));
                     }
                 }
                 return lightLevel;

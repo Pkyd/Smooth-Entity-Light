@@ -3,20 +3,17 @@ package lakmoore.sel.client.adaptors;
 import lakmoore.sel.client.Config;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.util.ResourceLocation;
 
 public class EntityItemAdaptor extends BaseAdaptor
 {
-	private int stackLightlevel;
+	private int stackLightlevel = -1;
 	private boolean notWaterProof;
 
 	public EntityItemAdaptor(EntityItem eI)
 	{
 		super(eI);
-		if (eI != null) {
-			String stackName = eI.getItem().getTranslationKey();
-			notWaterProof = Config.notWaterProofItems.contains(stackName);
-			stackLightlevel = Config.lightValueMap.get(stackName);			
-		}
+		// When EntityItems are spawned they have no knowledge of what item they will become!
 	}
 
 	public int getLightLevel()
@@ -29,7 +26,13 @@ public class EntityItemAdaptor extends BaseAdaptor
 			return 15;
 		}
 		else
-		{           
+		{   
+			if (this.stackLightlevel == -1) {
+				ResourceLocation stackName = ((EntityItem)this.entity).getItem().getItem().getRegistryName();
+				notWaterProof = Config.notWaterProofItems.contains(stackName);
+				stackLightlevel = Config.lightValueMap.getOrDefault(stackName, 0);			
+			}
+
 			if (
 				notWaterProof 
 				&& entity.world.getBlockState(entity.getPosition()).getMaterial() == Material.WATER

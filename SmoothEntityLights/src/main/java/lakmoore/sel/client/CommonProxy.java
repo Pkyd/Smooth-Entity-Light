@@ -13,11 +13,14 @@ public class CommonProxy
     	//      Creating and reading the config files
     	//      Registering Capabilities
 
+
     }
 
     public void setupClient(FMLClientSetupEvent evt) {
     	// Second event (sided) - not in the main thread
     	// Client only - Do Keybindings???
+    	
+    	// work is actually done in ClientProxy::setupClient()
 
     }
 

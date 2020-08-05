@@ -1,10 +1,7 @@
 package lakmoore.sel.world;
 
-import java.util.function.Function;
-
 import javax.annotation.Nullable;
 
-import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
@@ -17,8 +14,6 @@ import net.minecraft.world.dimension.Dimension;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 import net.minecraft.world.storage.WorldSavedDataStorage;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.common.util.NonNullFunction;
 
 public abstract class WorldSEL extends World {
 		

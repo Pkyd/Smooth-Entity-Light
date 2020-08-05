@@ -35,8 +35,9 @@ public class CommandSEL {
             		.executes(ctx -> water(ctx.getSource()))
             )
             .then(Commands.literal("hand")
-            		.then(Commands.argument("lightVal", IntegerArgumentType.integer(0, 15)))
-                    .executes(ctx -> hand(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "lightVal")))
+            		.then(Commands.argument("lightVal", IntegerArgumentType.integer(0, 15))
+            				.executes(ctx -> hand(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "lightVal")))
+                    )
             );
     }
 

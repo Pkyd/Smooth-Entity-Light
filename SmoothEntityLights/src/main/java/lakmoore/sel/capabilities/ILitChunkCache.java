@@ -6,10 +6,9 @@ import java.util.Set;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
 
 public interface ILitChunkCache {
-	
+		
 	/*
 	 * A 3D array of entity light values
 	 * 3 dimensions are x, y, z
@@ -19,13 +18,14 @@ public interface ILitChunkCache {
 	 * yChunk value is also between 0 and 15
 	 */
 	
-	public void setChunk(Chunk chunk);
-	public Chunk getChunk();
-	
 	public void setRenderChunk(int yChunk, RenderChunk renderChunk);
 	public Set<Integer> getDirtyRenderChunkYs();
 	public RenderChunk getRenderChunk(int yChunk);
 	
+	public void setChunkPos(int x, int z);
+	public int getX();
+	public int getZ();
+
 	/*
 	 * set the block light value in the cache
 	 */

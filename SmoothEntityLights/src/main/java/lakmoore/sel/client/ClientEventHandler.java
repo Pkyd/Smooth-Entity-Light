@@ -49,19 +49,38 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 
-public class EventHandler {
+public class ClientEventHandler {
 	
     @SuppressWarnings("unchecked")
     @SubscribeEvent
 	public void serverStarting(FMLServerStartingEvent event) {
     	// Setup Commands in this event
 	    event.getCommandDispatcher().register((LiteralArgumentBuilder<CommandSource>) CommandSEL.register());
+    }
+    
+    @SubscribeEvent
+    public void worldLoad(WorldEvent.Load event) {
+    	// Client Thread only please
+    	if (event.getWorld().isRemote()) {
+            // Set up our main worker thread
+    		SEL.lightWorker = new LightWorker();	
+    		SEL.lightWorker.start();    		
+    	}
+    }
+
+    @SubscribeEvent
+    public void worldUnload(WorldEvent.Unload event) {
+    	// Client Thread only please
+    	if (event.getWorld().isRemote()) {
+    		SEL.lightWorker.interrupt();    	
+    	}
     }
 
 	@SubscribeEvent
@@ -169,115 +188,116 @@ public class EventHandler {
 										data.get(rawBuffer);
 									}
 
+									if (rawBuffer.length > 0) {
+										boolean changed = false;
+										int putIndex = 0;
+										// System.out.println("******** Chunk at " + chunkPos.toString() + " "
+										// + layer.name() + " ********");
 
-									boolean changed = false;
-									int putIndex = 0;
-									// System.out.println("******** Chunk at " + chunkPos.toString() + " "
-									// + layer.name() + " ********");
-
-									int vertCount = integerCount / 7; // each vertex is 7 integers of data (28
-																		// bytes)
-									int quadCount = vertCount / 4; // each quad is four vertices (duh!)
-									
-									for (int q = 0; q < quadCount; q++) {
-										int[][] thisQuad = new int[4][];
-										float[][] position = new float[4][3];
-										boolean quadChanged = false;
+										int vertCount = integerCount / 7; // each vertex is 7 integers of data (28
+																			// bytes)
+										int quadCount = vertCount / 4; // each quad is four vertices (duh!)
 										
-										for (int v = 0; v < 4; v++) {
-											thisQuad[v] = new int[9];
-											for(int i = 0; i < 7; i++) {
-												thisQuad[v][i] = rawBuffer[putIndex + (v * 7) + i];													
-											}
+										for (int q = 0; q < quadCount; q++) {
+											int[][] thisQuad = new int[4][];
+											float[][] position = new float[4][3];
+											boolean quadChanged = false;
 											
-											position[v][0] = Float.intBitsToFloat(thisQuad[v][0]);
-											position[v][1] = Float.intBitsToFloat(thisQuad[v][1]);
-											position[v][2] = Float.intBitsToFloat(thisQuad[v][2]);											
-										}
-																		        																                							                
-										for (int v = 0; v < 4; v++) {
-											int yChunk = y;
-																		                
-											// Vertices range from 0 to 16 (not 0 to 15!!)
-											int vertX = Math.round(position[v][0]);
-											int vertY = Math.round(position[v][1]);
-											int vertZ = Math.round(position[v][2]);
-
-											ILitChunkCache thisLitChunkCache = lightCache;
-
-											if (vertX > 15) {
-												vertX -= 16;
-												thisLitChunkCache = LightUtils.getLitChunkCache(
-														ClientProxy.mcinstance.world, lightCache.getChunk().x + 1,
-														lightCache.getChunk().z);
-											}
-
-											if (vertY > 15) {
-												if (yChunk == 15) {
-													vertY = 15;
-												} else {
-													vertY -= 16;
-													yChunk += 1;
-												}
-											}
-
-											if (vertZ > 15) {
-												vertZ -= 16;
-												thisLitChunkCache = LightUtils.getLitChunkCache(
-														ClientProxy.mcinstance.world, thisLitChunkCache.getChunk().x,
-														thisLitChunkCache.getChunk().z + 1);
-											}
-
-											int mcLight = thisQuad[v][6];
-											short selLight = thisLitChunkCache.getVertexLight(vertX,
-													(16 * yChunk) + vertY, vertZ);											
-											int newLight = (mcLight & 0xFFFF0000) | selLight;
-
-											if (mcLight != newLight) {
-												thisQuad[v][6] = newLight;
-												quadChanged = true;
-											}
-											thisQuad[v][7] = selLight + ((mcLight & 0xFFFF0000) >> 16);
-
-										}
-
-										if (quadChanged) {
-											int[] order = { 0, 1, 2, 3 };
-											int[] flipped = { 1, 2, 3, 0 };
-
-											// re-order the triangles in the quad so brightness is always blended
-											// smoothly
-											if (
-													(
-														thisQuad[3][7] - thisQuad[0][7]
-													)
-												<
-													(
-														thisQuad[2][7] - thisQuad[1][7]
-													)
-											) {
-												order = flipped;
-											}
-
-											data.position(putIndex);
-											// thisQuad contains 4 vertices of data
 											for (int v = 0; v < 4; v++) {
-												for (int w = 0; w < 7; w++) {
-													rawBuffer[putIndex + (v * 7) + w] = thisQuad[order[v]][w];												
-												}													
+												thisQuad[v] = new int[9];
+												for(int i = 0; i < 7; i++) {
+													thisQuad[v][i] = rawBuffer[putIndex + (v * 7) + i];													
+												}
+												
+												position[v][0] = Float.intBitsToFloat(thisQuad[v][0]);
+												position[v][1] = Float.intBitsToFloat(thisQuad[v][1]);
+												position[v][2] = Float.intBitsToFloat(thisQuad[v][2]);											
 											}
-											changed = true;
+																			        																                							                
+											for (int v = 0; v < 4; v++) {
+												int yChunk = y;
+																			                
+												// Vertices range from 0 to 16 (not 0 to 15!!)
+												int vertX = Math.round(position[v][0]);
+												int vertY = Math.round(position[v][1]);
+												int vertZ = Math.round(position[v][2]);
+
+												ILitChunkCache thisLitChunkCache = lightCache;
+
+												if (vertX > 15) {
+													vertX -= 16;
+													thisLitChunkCache = LightUtils.getLitChunkCache(
+															ClientProxy.mcinstance.world, lightCache.getX() + 1,
+															lightCache.getZ());
+												}
+
+												if (vertY > 15) {
+													if (yChunk == 15) {
+														vertY = 15;
+													} else {
+														vertY -= 16;
+														yChunk += 1;
+													}
+												}
+
+												if (vertZ > 15) {
+													vertZ -= 16;
+													thisLitChunkCache = LightUtils.getLitChunkCache(
+															ClientProxy.mcinstance.world, thisLitChunkCache.getX(),
+															thisLitChunkCache.getZ() + 1);
+												}
+
+												int mcLight = thisQuad[v][6];
+												short selLight = thisLitChunkCache.getVertexLight(vertX,
+														(16 * yChunk) + vertY, vertZ);											
+												int newLight = (mcLight & 0xFFFF0000) | selLight;
+
+												if (mcLight != newLight) {
+													thisQuad[v][6] = newLight;
+													quadChanged = true;
+												}
+												thisQuad[v][7] = selLight + ((mcLight & 0xFFFF0000) >> 16);
+
+											}
+
+											if (quadChanged) {
+												int[] order = { 0, 1, 2, 3 };
+												int[] flipped = { 1, 2, 3, 0 };
+
+												// re-order the triangles in the quad so brightness is always blended
+												// smoothly
+												if (
+														(
+															thisQuad[3][7] - thisQuad[0][7]
+														)
+													<
+														(
+															thisQuad[2][7] - thisQuad[1][7]
+														)
+												) {
+													order = flipped;
+												}
+
+												data.position(putIndex);
+												// thisQuad contains 4 vertices of data
+												for (int v = 0; v < 4; v++) {
+													for (int w = 0; w < 7; w++) {
+														rawBuffer[putIndex + (v * 7) + w] = thisQuad[order[v]][w];												
+													}													
+												}
+												changed = true;
+											}
+
+											putIndex += 28;
+
 										}
 
-										putIndex += 28;
-
-									}
-
-									if (changed) {
-										data.rewind();
-										data.put(rawBuffer);
-										data.rewind();
-										GL15.glBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+										if (changed) {
+											data.rewind();
+											data.put(rawBuffer);
+											data.rewind();
+											GL15.glBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+										}										
 									}
 
 								}
@@ -350,7 +370,7 @@ public class EventHandler {
 		}
 
 		LitChunkCacheCapability cap = new LitChunkCacheCapability();
-		cap.setChunk(chunk);
+		cap.setChunkPos(chunk.x, chunk.z);
 		event.addCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY_NAME, cap);
 	}
 
@@ -462,11 +482,7 @@ public class EventHandler {
 	}
 
 	private void updateFrustum() {
-		try {
-			SEL.lightWorker.updateFrustum(ClientProxy.mcinstance.worldRenderer.viewFrustum);
-		} catch (Exception e) {
-			System.out.println(e.toString());
-		}
+		SEL.lightWorker.updateFrustum(ClientProxy.mcinstance.worldRenderer.viewFrustum);
 	}
 
 	private void checkForOptifine() {
