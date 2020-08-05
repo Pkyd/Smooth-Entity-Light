@@ -1,3 +1,6 @@
+4.0.3 (for MC1.12.2)
+Added protection for an Index out of Range error (https://pastebin.com/9uu7DFUV reported by AgentWolfTV - thank you)
+
 4.0.1 (for MC1.12.2)
 Fixed the problem with the transparent render layer (elegant solution)
 Fixed the problem with Fluids using a completely different renderer (horrible hack)
