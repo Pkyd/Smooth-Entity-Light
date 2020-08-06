@@ -9,7 +9,7 @@ import lakmoore.sel.capabilities.LitChunkCacheCapability;
 import lakmoore.sel.capabilities.NoStorage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.profiler.Profiler;
+import net.minecraft.profiler.IProfiler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fml.ModList;
@@ -19,7 +19,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 
 public class ClientProxy extends CommonProxy {
     public static Minecraft mcinstance;
-    public static Profiler mcProfiler;
+    public static IProfiler mcProfiler;
 
     /**
      * The Keybinding instance to monitor
@@ -58,7 +58,7 @@ public class ClientProxy extends CommonProxy {
 
         ClientProxy.nextKeyTriggerTime = System.currentTimeMillis();
                 
-        mcProfiler = ClientProxy.mcinstance.profiler;
+        mcProfiler = ClientProxy.mcinstance.getProfiler();
         
         // ==================
 

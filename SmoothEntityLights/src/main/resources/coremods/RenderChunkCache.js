@@ -1,5 +1,5 @@
 var constructorName = "<init>";
-var classChunkCacheNameOLD = "net/minecraft/client/renderer/chunk/RenderChunkCache";
+var classChunkCacheNameOLD = "net/minecraft/client/renderer/chunk/ChunkRenderCache";
 var classChunkCacheNameNEW = "lakmoore/sel/world/ChunkCacheSEL";
 
 /**
@@ -9,21 +9,21 @@ var classChunkCacheNameNEW = "lakmoore/sel/world/ChunkCacheSEL";
  * @return {object} All the transformers of this coremod.
  */
 function initializeCoreMod() {
-	print("Initializing SEL RenderChunkCache Coremod");
+	print("Initializing SEL ChunkRenderCache Coremod");
 	return {
-		"SEL RenderChunkCache Transformer": {
+		"SEL ChunkRenderCache Transformer": {
 			"target": {
 				"type": "CLASS",
-				"name": "net.minecraft.client.renderer.chunk.RenderChunkCache"
+				"name": "net.minecraft.client.renderer.chunk.ChunkRenderCache"
 			},
 			"transformer": function(classNode) {
-				print("Patching RenderChunkCache");				
+				print("Patching ChunkRenderCache");				
 				
 				var methods = classNode.methods;
 				for (var i in methods) {
 					var method = methods[i];
 					if (method.name == "generateCache") {
-						print("Inside RenderChunkCache::generateCache()");
+						print("Inside ChunkRenderCache::generateCache()");
 						
 						for each (var instruction in method.instructions.toArray()) {
 							if (
@@ -31,14 +31,14 @@ function initializeCoreMod() {
 								instruction.desc.equals(classChunkCacheNameOLD)
 							) {
 								instruction.desc = classChunkCacheNameNEW;
-								print("Patched RenderChunkCache Init 1/2");
+								print("Patched ChunkRenderCache Init 1/2");
 							}
 							if (
 								instruction.owner && 
 								instruction.owner.equals(classChunkCacheNameOLD)
 							) {
 								instruction.owner = classChunkCacheNameNEW;
-								print("Patched RenderChunkCache Init 2/2");
+								print("Patched ChunkRenderCache Init 2/2");
 							}
 						}
 						break;

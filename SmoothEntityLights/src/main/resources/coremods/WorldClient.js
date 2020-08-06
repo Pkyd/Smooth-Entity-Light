@@ -9,15 +9,15 @@ var classWorldNameNEW = "lakmoore/sel/world/WorldSEL";
  * @return {object} All the transformers of this coremod.
  */
 function initializeCoreMod() {
-	print("Initializing SEL WorldClient Coremod");
+	print("Initializing SEL ClientWorld Coremod");
 	return {
 		"SEL WorldClient Transformer": {
 			"target": {
 				"type": "CLASS",
-				"name": "net.minecraft.client.multiplayer.WorldClient"
+				"name": "net.minecraft.client.world.ClientWorld"
 			},
 			"transformer": function(classNode) {
-				print("Patching WorldClient");
+				print("Patching ClientWorld");
 				
 				classNode.superName = classWorldNameNEW;
 				
@@ -25,7 +25,7 @@ function initializeCoreMod() {
 				for (var i in methods) {
 					var method = methods[i];
 					if (method.name == constructorName) {
-						print("Inside WorldClient Init");
+						print("Inside ClientWorld Init");
 						
 						for each (var instruction in method.instructions.toArray()) {
 							if (
@@ -35,7 +35,7 @@ function initializeCoreMod() {
 								instruction.name.equals(constructorName)
 							) {
 								instruction.owner = classWorldNameNEW;
-								print("Patched WorldClient Init!");
+								print("Patched ClientWorld Init!");
 								break;
 							}
 						}

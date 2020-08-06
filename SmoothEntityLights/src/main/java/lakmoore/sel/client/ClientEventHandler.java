@@ -7,6 +7,7 @@ import javax.vecmath.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 
+import com.mojang.blaze3d.platform.GLX;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import lakmoore.sel.capabilities.DefaultLightSourceCapability;
@@ -21,39 +22,38 @@ import lakmoore.sel.client.adaptors.MobLightAdaptor;
 import lakmoore.sel.client.adaptors.PartialLightAdaptor;
 import lakmoore.sel.client.adaptors.PlayerOtherAdaptor;
 import lakmoore.sel.client.adaptors.PlayerSelfAdaptor;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityOtherPlayerMP;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.chunk.RenderChunk;
+import net.minecraft.client.renderer.chunk.ChunkRender;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.vertex.VertexBuffer;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.command.CommandSource;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.item.EntityXPOrb;
-import net.minecraft.entity.monster.EntityCreeper;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.entity.projectile.EntityFireball;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.item.ExperienceOrbEntity;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.monster.CreeperEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.entity.projectile.ArrowEntity;
+import net.minecraft.entity.projectile.FireballEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 
 public class ClientEventHandler {
@@ -97,7 +97,7 @@ public class ClientEventHandler {
 				SEL.disabled = !SEL.disabled;
 				// player notification
 				ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(
-						new TextComponentString("Smooth Entity Lights " + (SEL.disabled ? "off" : "on")));
+						new StringTextComponent("Smooth Entity Lights " + (SEL.disabled ? "off" : "on")));
 				if (SEL.disabled) {
 					SEL.lightWorker.shutdown();
 					SEL.forceUpdate = true;
@@ -118,7 +118,7 @@ public class ClientEventHandler {
 		// ClientProxy.mcProfiler.startSection(SEL.modId + ":afterRender");
 		if (ClientProxy.mcinstance.world != null
 				&& (ClientProxy.mcinstance.currentScreen == null
-						|| !ClientProxy.mcinstance.currentScreen.doesGuiPauseGame())
+						|| !ClientProxy.mcinstance.currentScreen.isPauseScreen())
 				&& SEL.enabledForDimension(ClientProxy.mcinstance.player.dimension)
 				&& (SEL.forceUpdate || !SEL.disabled)) {
 
@@ -145,7 +145,7 @@ public class ClientEventHandler {
 
 					lightCache.getDirtyRenderChunkYs().forEach(y -> {
 
-						RenderChunk renderChunk = lightCache.getRenderChunk(y);
+						ChunkRender renderChunk = lightCache.getRenderChunk(y);
 						if (renderChunk != null) {
 
 							lightCache.reLightDone(y);
@@ -165,7 +165,7 @@ public class ClientEventHandler {
 								VertexBuffer vbo = renderChunk.getVertexBufferByLayer(layer.ordinal());
 
 								vbo.bindBuffer();
-								int byteCount = GL15.glGetBufferParameteri(OpenGlHelper.GL_ARRAY_BUFFER,
+								int byteCount = GL15.glGetBufferParameteri(GLX.GL_ARRAY_BUFFER,
 										GL15.GL_BUFFER_SIZE);
 
 								if (byteCount > 0) {
@@ -182,7 +182,7 @@ public class ClientEventHandler {
 										rawBuffer = renderChunk.getCompiledChunk().getState().getRawBuffer();
 									} else {
 										// Fetch the Vertex Buffer from the GPU
-										GL15.glGetBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+										GL15.glGetBufferSubData(GLX.GL_ARRAY_BUFFER, 0, data);
 
 										rawBuffer = new int[integerCount];
 										data.get(rawBuffer);
@@ -296,7 +296,7 @@ public class ClientEventHandler {
 											data.rewind();
 											data.put(rawBuffer);
 											data.rewind();
-											GL15.glBufferSubData(OpenGlHelper.GL_ARRAY_BUFFER, 0, data);
+											GL15.glBufferSubData(GLX.GL_ARRAY_BUFFER, 0, data);
 										}										
 									}
 
@@ -329,7 +329,7 @@ public class ClientEventHandler {
 			Entity player = ClientProxy.mcinstance.player;
 			World world = ClientProxy.mcinstance.world;
 			BlockPos pos = player.getPosition();
-			IBlockState state = world.getBlockState(pos);
+			BlockState state = world.getBlockState(pos);
 			ILitChunkCache litChunkCache = LightUtils.getLitChunkCache(world, pos.getX() >> 4, pos.getZ() >> 4);
 
 			event.getLeft().add("Vanilla BL: " + state.getLightValue(world, pos) + " SEL: "
@@ -370,7 +370,7 @@ public class ClientEventHandler {
 		}
 
 		LitChunkCacheCapability cap = new LitChunkCacheCapability();
-		cap.setChunkPos(chunk.x, chunk.z);
+		cap.setChunkPos(chunk.getPos().x, chunk.getPos().z);
 		event.addCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY_NAME, cap);
 	}
 
@@ -392,13 +392,13 @@ public class ClientEventHandler {
 		DefaultLightSourceCapability sources = new DefaultLightSourceCapability();
 		sources.init(entity, world);
 
-		if (entity instanceof EntityItem) {
+		if (entity instanceof ItemEntity) {
 			if (!Config.lightDroppedItems)
 				return;
 
-			EntityItemAdaptor adaptor = new EntityItemAdaptor((EntityItem) entity);
+			EntityItemAdaptor adaptor = new EntityItemAdaptor((ItemEntity) entity);
 			sources.addLightSource(adaptor);
-		} else if (entity instanceof EntityLivingBase && !(entity instanceof EntityPlayer)) {
+		} else if (entity instanceof LivingEntity && !(entity instanceof PlayerEntity)) {
 			int minLight = 0;
 			boolean catchesFire = false;
 			
@@ -418,34 +418,34 @@ public class ClientEventHandler {
 			}
 
 			if (Config.lightMobEquipment) {
-				MobLightAdaptor adaptor = new MobLightAdaptor((EntityLivingBase) entity);
+				MobLightAdaptor adaptor = new MobLightAdaptor((LivingEntity) entity);
 				sources.addLightSource(adaptor);
 			}
 
-			if (Config.lightChargingCreepers && entity instanceof EntityCreeper) {
-				CreeperAdaptor adaptor = new CreeperAdaptor((EntityCreeper) entity);
+			if (Config.lightChargingCreepers && entity instanceof CreeperEntity) {
+				CreeperAdaptor adaptor = new CreeperAdaptor((CreeperEntity) entity);
 				sources.addLightSource(adaptor);
 			}
 
-		} else if (entity instanceof EntityArrow || entity instanceof EntityFireball) {
+		} else if (entity instanceof ArrowEntity || entity instanceof FireballEntity) {
 			if (!Config.lightFlamingArrows)
 				return;
 
 			EntityBurningAdaptor adaptor = new EntityBurningAdaptor(entity);
 			sources.addLightSource(adaptor);
-		} else if (entity instanceof EntityXPOrb) {
+		} else if (entity instanceof ExperienceOrbEntity) {
 			if (!Config.lightXP)
 				return;
 
 			BrightAdaptor adaptor = new BrightAdaptor(entity, 10);
 			sources.addLightSource(adaptor);
-		} else if (entity instanceof EntityOtherPlayerMP) {
+		} else if (entity instanceof ServerPlayerEntity) {
 			if (!Config.lightOtherPlayers)
 				return;
 
-			PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((EntityOtherPlayerMP) entity);
+			PlayerOtherAdaptor adaptor = new PlayerOtherAdaptor((ServerPlayerEntity) entity);
 			sources.addLightSource(adaptor);
-		} else if (entity instanceof EntityPlayerSP) {
+		} else if (entity instanceof ClientPlayerEntity) {
 			if (Config.lightFloodLight) {
 				FloodLightAdaptor adaptor = new FloodLightAdaptor(entity, Config.simpleMode);
 				sources.addLightSource(adaptor);
@@ -454,7 +454,7 @@ public class ClientEventHandler {
 			if (!Config.lightThisPlayer)
 				return;
 
-			PlayerSelfAdaptor adaptor = new PlayerSelfAdaptor((EntityPlayer) entity);
+			PlayerSelfAdaptor adaptor = new PlayerSelfAdaptor((PlayerEntity) entity);
 			sources.addLightSource(adaptor);
 
 			checkForOptifine();
@@ -487,7 +487,7 @@ public class ClientEventHandler {
 
 	private void checkForOptifine() {
 		if (LightUtils.hasOptifine() && !Config.optifineOverride) {
-			ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new TextComponentString(
+			ClientProxy.mcinstance.ingameGUI.getChatGUI().printChatMessage(new StringTextComponent(
 					"Optifine is loaded.  Disabling Smooth Entity Light.  Check the config file to override."));
 			SEL.disabled = true;
 		}

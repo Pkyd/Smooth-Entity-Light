@@ -3,11 +3,10 @@ package lakmoore.sel.world;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockReader;
 
@@ -32,19 +31,19 @@ public class DirtyRayTrace {
 			if (!Double.isNaN(endPos.x) && !Double.isNaN(endPos.y) && !Double.isNaN(endPos.z)) {
 				
 				Vec3d currentPos = new Vec3d(startPos.x, startPos.y, startPos.z);
-				RayTraceResult rtr;
+				BlockRayTraceResult rtr;
 				boolean sameBlock = false;
 				
 				do {
 					rtr = blockRayTrace(currentPos, endPos);
 					
 					if (rtr != null) {												
-						currentPos = rtr.hitVec;
+						currentPos = rtr.getHitVec();
 
-						BlockPos thisBlock = rtr.getBlockPos();
+						BlockPos thisBlock = rtr.getPos();
 						
 						// Get the block we hit
-						IBlockState state = world.getBlockState(thisBlock);
+						BlockState state = world.getBlockState(thisBlock);
 						if (state != null) {
 							Block block = state.getBlock();
 							if (block != null && !state.isAir(world, thisBlock)) {
@@ -65,7 +64,7 @@ public class DirtyRayTrace {
 	 * A RayTrace routine that I can understand.
 	 * Resultant side-hit is not calculated
 	 */
-	private RayTraceResult blockRayTrace(Vec3d startVec, Vec3d endVec) {
+	private BlockRayTraceResult blockRayTrace(Vec3d startVec, Vec3d endVec) {
 		
 		BlockPos startBlockPos = new BlockPos(startVec);
 		BlockPos endBlockPos = new BlockPos(endVec);
@@ -108,7 +107,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(-1, 0, 0));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.DOWN, startBlockPos.add(-1, 0, 0), false);                	
                 }
             }        	
         }
@@ -120,7 +119,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.y) && inBounds(hitPoint.z)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(1, 0, 0));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.DOWN, startBlockPos.add(1, 0, 0), false);                	
                 }
             }        	
         }
@@ -132,7 +131,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, -1, 0));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.DOWN, startBlockPos.add(0, -1, 0), false);                	
                 }
             }        	
         }
@@ -144,7 +143,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.z)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.UP, startBlockPos.add(0, 1, 0));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.UP, startBlockPos.add(0, 1, 0), false);                	
                 }
             }        	
         }
@@ -156,7 +155,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, 0, -1));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.DOWN, startBlockPos.add(0, 0, -1), false);                	
                 }
             }        	
         }
@@ -168,7 +167,7 @@ public class DirtyRayTrace {
             	// within the same block?
                 if (inBounds(hitPoint.x) && inBounds(hitPoint.y)) {
                 	hitPoint = hitPoint.add(new Vec3d(startBlockPos));
-                    return new RayTraceResult(RayTraceResult.Type.BLOCK, hitPoint, EnumFacing.DOWN, startBlockPos.add(0, 0, 1));                	
+                    return new BlockRayTraceResult(hitPoint, Direction.DOWN, startBlockPos.add(0, 0, 1), false);                	
                 }
             }        	
         }

@@ -1,13 +1,13 @@
 
 modLoader="javafml"
-loaderVersion="[25,)"
+loaderVersion="[28,)"
 issueTrackerURL="https://github.com/LakMoore/Smooth-Entity-Light/issues"
 
 [[mods]]
 	modId="sel"
 	version="${file.jarVersion}"
 	displayName="Smooth Entity Light"
-	updateJSONURL="https://www.dropbox.com/s/svrrpxsmyeqku09/SmoothEntityLight.json?dl=1"
+	updateJSONURL="https://www.dropbox.com/s/sofgctc8w0w6gyx/SmoothEntityLight.json?dl=1"
 	displayURL="https://www.curseforge.com/minecraft/mc-mods/smooth-entity-light"
 	logoFile="assets/sel/textures/gui/logo.png"
 	credits="AtomicStryker; for his original work"
@@ -20,13 +20,13 @@ issueTrackerURL="https://github.com/LakMoore/Smooth-Entity-Light/issues"
 	[[dependencies.sel]]
 	    modId="forge"
 	    mandatory=true
-	    versionRange="[25,)"
+	    versionRange="[28,)"
 	    ordering="NONE"
 	    side="BOTH"
 	[[dependencies.sel]]
 	    modId="minecraft"
 	    mandatory=true
-	    versionRange="[1.13.2]"
+	    versionRange="[1.14.4]"
 	    ordering="NONE"
 	    side="BOTH"
 	    

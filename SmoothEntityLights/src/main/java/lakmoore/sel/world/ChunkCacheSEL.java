@@ -4,13 +4,13 @@ import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
-import net.minecraft.client.renderer.chunk.RenderChunkCache;
+import net.minecraft.client.renderer.chunk.ChunkRenderCache;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
-public class ChunkCacheSEL extends RenderChunkCache {
+public class ChunkCacheSEL extends ChunkRenderCache {
 	
 	World world;
 	

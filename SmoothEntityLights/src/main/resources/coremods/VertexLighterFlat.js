@@ -1,4 +1,3 @@
-var LocalVariableNode = Java.type("org.objectweb.asm.tree.LocalVariableNode")
 var constructorName = "<init>";
 var methodNewVertexLighterName = "lambda$new$0"; 
 var classVertexLighterOLD = "net/minecraftforge/client/model/pipeline/VertexLighterFlat";
@@ -57,14 +56,14 @@ function initializeCoreMod() {
 						}
 					}
 					
-					if (
-						method.name &&
-						(method.name == "renderModelSmooth" || method.name == "renderModelFlat") &&
-						method.desc &&
-						method.desc == "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;J)Z"
-					) {
-						method.desc = "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;JLnet/minecraftforge/client/model/data/IModelData;)Z";
-					}
+//					if (
+//						method.name &&
+//						(method.name == "renderModelSmooth" || method.name == "renderModelFlat") &&
+//						method.desc &&
+//						method.desc == "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;J)Z"
+//					) {
+//						method.desc = "(Lnet/minecraft/world/IWorldReader;Lnet/minecraft/client/renderer/model/IBakedModel;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/renderer/BufferBuilder;ZLjava/util/Random;JLnet/minecraftforge/client/model/data/IModelData;)Z";
+//					}
 				}
 
 				return classNode;

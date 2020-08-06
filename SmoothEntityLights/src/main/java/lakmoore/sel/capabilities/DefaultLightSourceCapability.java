@@ -9,9 +9,9 @@ import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
 import lakmoore.sel.client.adaptors.BaseAdaptor;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -180,8 +180,8 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> capability, EnumFacing facing) {
-		if (capability == SEL.LIGHT_SOURCE_CAPABILITY) {
+	public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction side) {
+		if (cap == SEL.LIGHT_SOURCE_CAPABILITY) {
 			return (LazyOptional<T>) LazyOptional.of(() -> { return this; });
 		}
 		return null;

@@ -17,12 +17,13 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.server.ServerWorld;
 
 public class LightUtils {
 	
@@ -69,7 +70,7 @@ public class LightUtils {
 	public static short getEntityLightLevel(IBlockReader world, BlockPos pos, float partialTicks) {
 		float maxLight = 0.0f;
 
-        if (SEL.disabled || world == null || world instanceof WorldServer) {
+        if (SEL.disabled || world == null || world instanceof ServerWorld) {
             return 0;
         }
 
@@ -142,7 +143,7 @@ public class LightUtils {
 	public static short getEntityLightLevel(IBlockReader world, List<Entity> interestingEntities, Vec3d vertexPos, float partialTicks) {
 		float maxLight = 0.0f;
 
-        if (SEL.disabled || world == null || world instanceof WorldServer) {
+        if (SEL.disabled || world == null || world instanceof ServerWorld) {
             return 0;
         }
 
@@ -220,10 +221,13 @@ public class LightUtils {
     
     public static boolean hasLineOfSight(BlockPos blockPos, Vec3d camPos) {
     	RayTraceResult rtr = ClientProxy.mcinstance.world.rayTraceBlocks(
-			new Vec3d(blockPos).add(0.5, 0.5, 0.5), 
-			camPos
+    		new RayTraceContext(
+    				new Vec3d(blockPos).add(0.5, 0.5, 0.5), 
+    				camPos,
+    				RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, ClientProxy.mcinstance.player
+    		)
 		);
-		return rtr == null || rtr.type != RayTraceResult.Type.BLOCK;  
+		return rtr == null || rtr.getType() != RayTraceResult.Type.BLOCK;  
     }
     
     public static <T extends Entity> List<T> getEntitiesWithinAABB(Class <? extends T > clazz, AxisAlignedBB aabb, @Nullable Predicate <? super T > filter)

@@ -3,10 +3,11 @@ package lakmoore.sel.client.adaptors;
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.LightUtils;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.passive.EntityHorse;
-import net.minecraft.init.Items;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.passive.horse.HorseEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 
 /**
  * 
@@ -23,34 +24,23 @@ public class MobLightAdaptor extends BaseAdaptor
 		super(entity);
 	}
 
-	private int getEquipmentLightLevel(EntityLivingBase ent)
+	private int getEquipmentLightLevel(LivingEntity ent)
 	{
-		if (ent instanceof EntityHorse)
+		if (ent instanceof HorseEntity)
 		{
-			// Horse armor texture is the only thing "visible" on client, inventory is not synced.
-			// Armor layer is at index 2 in texture layers
-			String horseArmorTexture = ((EntityHorse)ent).getVariantTexturePaths()[2];
-			if (horseArmorTexture != null)
-			{
-				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_gold.png"))
+			if (((HorseEntity)ent).wearsArmor()) {
+				ItemStack horseArmor = ((HorseEntity)ent).func_213803_dV();
+				if (horseArmor != null && !horseArmor.isEmpty())
 				{
-					return Config.lightValueMap.get(Items.GOLDEN_HORSE_ARMOR.getRegistryName()); // horsearmorgold
-				}
-				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_iron.png"))
-				{
-					return Config.lightValueMap.get(Items.IRON_HORSE_ARMOR.getRegistryName()); // horsearmormetal
-				}
-				if (horseArmorTexture.equals("textures/entity/horse/armor/horse_armor_diamond.png"))
-				{
-					return Config.lightValueMap.get(Items.DIAMOND_HORSE_ARMOR.getRegistryName()); // butt stallion
-				}
+					return Config.lightValueMap.getOrDefault(horseArmor.getItem().getRegistryName(), 0);
+				}				
 			}
 		}
 
 		return getMobEquipMaxLight(ent);
 	}
 
-	private int getMobEquipMaxLight(EntityLivingBase ent)
+	private int getMobEquipMaxLight(LivingEntity ent)
 	{
 		int light = 0;
 		for (ItemStack stack : ent.getEquipmentAndArmor())
@@ -66,12 +56,12 @@ public class MobLightAdaptor extends BaseAdaptor
 	public int getLightLevel()
 	{            
 		// atomic stryker's infernal mobs - yay
-		if (entity.getEntityData().getString("InfernalMobsMod").length() > 0)
+		if (entity.getPersistentData().getString("InfernalMobsMod").length() > 0)
 		{
 			return 10;
 		}
 		else
-			return getEquipmentLightLevel((EntityLivingBase)entity);
+			return getEquipmentLightLevel((LivingEntity)entity);
 	}
 
 }

@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import net.minecraft.client.renderer.ViewFrustum;
-import net.minecraft.client.renderer.chunk.RenderChunk;
+import net.minecraft.client.renderer.chunk.ChunkRender;
 import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -132,15 +132,23 @@ public class LightWorker extends Thread {
 						&& this.player != null
 						&& this.player.world != null
 						&& (ClientProxy.mcinstance.currentScreen == null
-							|| !ClientProxy.mcinstance.currentScreen.doesGuiPauseGame()
+							|| !ClientProxy.mcinstance.currentScreen.isPauseScreen()
 						) && SEL.enabledForDimension(this.player.dimension)
 					) {
 						this.entityCount.set(0);
 
 						// Tidy up a bit
 						allSources.stream()
+						.filter(source -> source != null && (source.getEntity() == null || !source.getEntity().isAlive()))
+						.forEach(source -> {
+							source.destroy();
+						});
+
+						allSources.stream()
 							.filter(source -> source == null || source.getEntity() == null || !source.getEntity().isAlive())
-							.forEach(source -> this.allSources.remove((source)));
+							.forEach(source -> {
+								this.allSources.remove(source);
+							});
 						
 						if (this.player != null && this.cameraPos != null) {
 							// Search for entities of interest
@@ -206,7 +214,7 @@ public class LightWorker extends Thread {
 								Set<ILitChunkCache> result = new HashSet<ILitChunkCache>();
 
 								// Get all the chunks we are interested in
-								Set<RenderChunk> renderChunks = Arrays.asList(this.frustum.renderChunks).stream()
+								Set<ChunkRender> renderChunks = Arrays.asList(this.frustum.renderChunks).stream()
 										.filter(renderChunk -> renderChunk != null
 											// AND this chunk is visible
 //											&& this.iCamera.isBoundingBoxInFrustum(renderChunk.boundingBox)

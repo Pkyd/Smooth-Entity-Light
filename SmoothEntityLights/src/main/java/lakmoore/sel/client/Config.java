@@ -10,8 +10,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.collect.Lists;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.monster.EntityBlaze;
-import net.minecraft.entity.monster.EntityMagmaCube;
+import net.minecraft.entity.monster.BlazeEntity;
+import net.minecraft.entity.monster.MagmaCubeEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -65,9 +65,9 @@ public class Config
 
     public static int getMobGlow(Entity entity) {
         int value = 0;
-        if (entity instanceof EntityBlaze)
+        if (entity instanceof BlazeEntity)
             value = LIGHT_LEVEL_BLAZE;
-        else if (entity instanceof EntityMagmaCube)
+        else if (entity instanceof MagmaCubeEntity)
             value = LIGHT_LEVEL_MAGMA_CUBE;
 
         Integer configValue = Config.glowValueMap.putIfAbsent(entity.getClass().getSimpleName(), value);

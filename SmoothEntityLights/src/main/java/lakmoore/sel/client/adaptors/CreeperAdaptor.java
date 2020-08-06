@@ -1,12 +1,12 @@
 package lakmoore.sel.client.adaptors;
 
-import net.minecraft.entity.monster.EntityCreeper;
+import net.minecraft.entity.monster.CreeperEntity;
 
 public class CreeperAdaptor extends BaseAdaptor
 {
-	protected EntityCreeper creeper;
+	protected CreeperEntity creeper;
 
-	public CreeperAdaptor(EntityCreeper creeper)
+	public CreeperAdaptor(CreeperEntity creeper)
 	{
 		super(creeper);
 		this.creeper = creeper;

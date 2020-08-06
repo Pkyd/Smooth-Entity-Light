@@ -5,14 +5,19 @@ import java.util.ArrayList;
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.SEL;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntitySize;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.Pose;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.client.world.ClientWorld;
 
 /**
  * 
@@ -23,7 +28,7 @@ import net.minecraft.world.World;
  */
 public class FloodLightAdaptor extends BaseAdaptor
 {
-	public EntityPlayer thePlayer;
+	public PlayerEntity thePlayer;
 	public final int freeDistance = 8;  //Makes this light source a little more useful/interesting
 	public final float beamStrength = 26.0F;
     
@@ -36,7 +41,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 
     public FloodLightAdaptor(Entity entity, boolean simpleMode) {
 		super(entity);
-		thePlayer = (EntityPlayer)entity;
+		thePlayer = (PlayerEntity)entity;
 		
 		if (lights != null) {
 			for (PartialLightAdaptor light : lights) {
@@ -54,9 +59,12 @@ public class FloodLightAdaptor extends BaseAdaptor
 		Entity dummyEntity;
         for (int i = 0; i < count; i++)
         {
-        	dummyEntity = new DummyEntity(entity.world);      
-            entity.setPosition(thePlayer.chunkCoordX * 16, thePlayer.chunkCoordY, thePlayer.chunkCoordZ * 16);
-            thePlayer.world.spawnEntity(dummyEntity);
+        	//dummyEntity = Items.ACACIA_BOAT.createEntity(entity.world, thePlayer, new ItemStack(Items.ACACIA_BOAT));
+//        	dummyEntity = new BoatEntity(entity.world, thePlayer.posX, thePlayer.posY, thePlayer.posZ);  
+        	dummyEntity = new DummyEntity(entity.world);
+        	dummyEntity.setEntityId(Integer.MAX_VALUE - i);
+        	dummyEntity.setPosition(thePlayer.chunkCoordX * 16, thePlayer.chunkCoordY, thePlayer.chunkCoordZ * 16);
+            ((ClientWorld)thePlayer.world).addEntity(dummyEntity.getEntityId(), dummyEntity);
         }
 
 	}
@@ -65,7 +73,7 @@ public class FloodLightAdaptor extends BaseAdaptor
 	@Override
     public int getLightLevel()
     {		
-        if (thePlayer != null && thePlayer.isAlive() && !SEL.disabled)
+         if (thePlayer != null && thePlayer.isAlive() && !SEL.disabled)
         {
             lightLevel = 0;
         	for (ItemStack stack : thePlayer.getHeldEquipment()) {
@@ -95,14 +103,17 @@ public class FloodLightAdaptor extends BaseAdaptor
                     Vec3d look = getVector(thePlayer.rotationYaw + yaw[light.Id], thePlayer.rotationPitch + pitch[light.Id]);
                     
                     Vec3d beam = origin.add(look.x * beamStrength, look.y * beamStrength, look.z * beamStrength);
-                    RayTraceResult rtr = thePlayer.world.rayTraceBlocks(origin, beam);
-                    if (rtr != null)
+                    RayTraceResult rtr = thePlayer.world.rayTraceBlocks(
+                    	new RayTraceContext(origin, beam, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, thePlayer)
+                    );
+                    if (rtr != null && rtr.getType() != RayTraceResult.Type.MISS)
                     {
-                        int dist = (int) Math.round(thePlayer.getDistance(rtr.hitVec.x, rtr.hitVec.y, rtr.hitVec.z));
+                    	// Can't avoid this square root (would like to if anyone has any ideas)
+                        int dist = (int) Math.round(Math.sqrt(thePlayer.getDistanceSq(rtr.getHitVec())));
                         dist = Math.max(0, dist - freeDistance);
                         light.lightLevel = Math.max(0, lightLevel - dist);
                         
-                        light.entity.setPosition(rtr.hitVec.x - (look.x * 0.7f), rtr.hitVec.y - (look.y * 0.7f), rtr.hitVec.z - (look.z * 0.7f));
+                        light.entity.setPosition(rtr.getHitVec().x - (look.x * 0.7f), rtr.getHitVec().y - (look.y * 0.7f), rtr.getHitVec().z - (look.z * 0.7f));
                     }
                     else
                     {
@@ -140,23 +151,34 @@ public class FloodLightAdaptor extends BaseAdaptor
     {
         public DummyEntity(World par1World) { 
         	super(EntityType.ITEM, par1World); 
-        	this.height = 0f;
-        	this.width = 0f;
+        	this.noClip = true;
+        	this.recalculateSize();
         	
-        	// To make the entity visible for debugging, give it size
-//        	this.height = 0.5f;
-//        	this.width = 0.5f;        	
         }
-        
-        @Override
+
+		@Override
+		public EntitySize getSize(Pose poseIn) {
+        	// To make the entity visible for debugging, don't set its size to zero
+			return new EntitySize(0f, 0f, true);
+		}
+
+		@Override
 		protected void registerData() {
 		}
+
 		@Override
-		protected void readAdditional(NBTTagCompound compound) {
+		protected void readAdditional(CompoundNBT compound) {
 		}
+
 		@Override
-		protected void writeAdditional(NBTTagCompound compound) {
+		protected void writeAdditional(CompoundNBT compound) {
 		}
+
+		@Override
+		public IPacket<?> createSpawnPacket() {
+			return null;
+		}
+        
     }
 
 }

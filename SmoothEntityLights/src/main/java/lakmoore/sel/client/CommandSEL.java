@@ -9,9 +9,9 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /**
  * @author LakMoore
@@ -22,7 +22,7 @@ public class CommandSEL {
 //    private static final SimpleCommandExceptionType INVALID_ACTION 
 //    	= new SimpleCommandExceptionType(new TextComponentTranslation("commands.errors.syntax"));
     private static final SimpleCommandExceptionType INVALID_ITEM
-    	= new SimpleCommandExceptionType(new TextComponentTranslation("commands.errors.noitem"));
+    	= new SimpleCommandExceptionType(new TranslationTextComponent("commands.errors.noitem"));
     
     static ArgumentBuilder<CommandSource, ?> register()
     {
@@ -44,26 +44,26 @@ public class CommandSEL {
 	public static int hand(CommandSource source, Integer lightVal) throws CommandSyntaxException {   
 		ItemStack item = getHeldItem(source);
         Config.setHeldLight(item, lightVal);
-        source.sendFeedback(new TextComponentTranslation("commands.success"), true);           
+        source.sendFeedback(new TranslationTextComponent("commands.success"), true);           
         return Command.SINGLE_SUCCESS;
     }
 	
 	public static int flood(CommandSource source) throws CommandSyntaxException {
 		ItemStack item = getHeldItem(source);
         Config.toggleFloodlight(item);
-        source.sendFeedback(new TextComponentTranslation("commands.toggle.floodlight"), true);
+        source.sendFeedback(new TranslationTextComponent("commands.toggle.floodlight"), true);
         return Command.SINGLE_SUCCESS;
 	}
 
 	public static int water(CommandSource source) throws CommandSyntaxException {
 		ItemStack item = getHeldItem(source);
         Config.toggleWaterproof(item);
-        source.sendFeedback(new TextComponentTranslation("commands.toggle.waterproof"), true);
+        source.sendFeedback(new TranslationTextComponent("commands.toggle.waterproof"), true);
         return Command.SINGLE_SUCCESS;
 	}
 	
 	public static ItemStack getHeldItem(CommandSource source) throws CommandSyntaxException {
-        ItemStack item = ((EntityPlayer)source.getEntity()).getHeldItemMainhand();
+        ItemStack item = ((PlayerEntity)source.getEntity()).getHeldItemMainhand();
         if (item == null)
         {
         	throw INVALID_ITEM.create();

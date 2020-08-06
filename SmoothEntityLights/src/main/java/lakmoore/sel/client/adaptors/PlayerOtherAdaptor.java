@@ -2,14 +2,14 @@ package lakmoore.sel.client.adaptors;
 
 import lakmoore.sel.client.Config;
 import lakmoore.sel.client.LightUtils;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 
 public class PlayerOtherAdaptor extends BaseAdaptor
     {        
-        private EntityPlayer player;
+        private PlayerEntity player;
         
-        public PlayerOtherAdaptor(EntityPlayer p)
+        public PlayerOtherAdaptor(PlayerEntity p)
         {
     		super(p);
             player = p;

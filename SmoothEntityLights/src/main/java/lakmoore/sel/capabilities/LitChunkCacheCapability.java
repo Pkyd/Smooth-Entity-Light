@@ -9,12 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
-import net.minecraft.client.renderer.chunk.RenderChunk;
+import net.minecraft.client.renderer.chunk.ChunkRender;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.LazyOptional;
@@ -27,7 +26,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	private short[][][][] mcLight;
 	private List<Set<BlockPos>> dirtyBlocks;
 	private boolean[] dirtyChunk;
-	private RenderChunk[] renderChunks;
+	private ChunkRender[] renderChunks;
 	private int chunkX;
 	private int chunkZ;
 
@@ -40,7 +39,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 			dirtyBlocks.add(ConcurrentHashMap.newKeySet());
 		}
 		dirtyChunk = new boolean[16];
-		renderChunks = new RenderChunk[16];
+		renderChunks = new ChunkRender[16];
 	}
 	
 	@Override
@@ -61,7 +60,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public void setRenderChunk(int yChunk, RenderChunk renderChunk) {
+	public void setRenderChunk(int yChunk, ChunkRender renderChunk) {
 		this.renderChunks[yChunk & 0xF] = renderChunk;
 	}
 
@@ -77,7 +76,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public RenderChunk getRenderChunk(int yChunk) {
+	public ChunkRender getRenderChunk(int yChunk) {
 		return this.renderChunks[yChunk & 0xF];
 	}
 
@@ -171,12 +170,12 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 		return dirtyBlocks.get(yChunk).size() > 0;
 	}
 	
-	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {		
+	public boolean hasCapability(Capability<?> capability, Direction side) {		
 		return this.getCapability(SEL.LIT_CHUNK_CACHE_CAPABILITY).isPresent();
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> capability, EnumFacing facing) {
+	public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction side) {
 		if (capability == SEL.LIT_CHUNK_CACHE_CAPABILITY) {
 			return LazyOptional.of((NonNullSupplier<T>) () -> {return (T) this;});
 		}

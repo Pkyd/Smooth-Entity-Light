@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.client.renderer.chunk.RenderChunk;
+import net.minecraft.client.renderer.chunk.ChunkRender;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
@@ -27,7 +27,7 @@ public class DummyChunkCache implements ILitChunkCache {
 	}
 
 	@Override
-	public void setRenderChunk(int yChunk, RenderChunk renderChunk) {
+	public void setRenderChunk(int yChunk, ChunkRender renderChunk) {
 		// Do Nothing
 	}
 
@@ -37,7 +37,7 @@ public class DummyChunkCache implements ILitChunkCache {
 	}
 
 	@Override
-	public RenderChunk getRenderChunk(int yChunk) {
+	public ChunkRender getRenderChunk(int yChunk) {
 		// TODO Auto-generated method stub
 		return null;
 	}

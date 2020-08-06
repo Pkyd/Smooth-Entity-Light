@@ -1,7 +1,7 @@
 package lakmoore.sel.client.adaptors;
 
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import lakmoore.sel.client.Config;
@@ -18,9 +18,9 @@ import lakmoore.sel.client.SEL;
  */
 public class PlayerSelfAdaptor extends BaseAdaptor
 {
-	EntityPlayer thePlayer;
+	PlayerEntity thePlayer;
 	
-    public PlayerSelfAdaptor(EntityPlayer entity) {
+    public PlayerSelfAdaptor(PlayerEntity entity) {
 		super(entity);
 		thePlayer = entity;
 	}
@@ -64,7 +64,7 @@ public class PlayerSelfAdaptor extends BaseAdaptor
         return 0;
     }
     
-    private boolean checkPlayerWater(EntityPlayer thePlayer)
+    private boolean checkPlayerWater(PlayerEntity thePlayer)
     {
         if (thePlayer.isInWater())
         {
