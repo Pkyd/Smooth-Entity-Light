@@ -1,3 +1,7 @@
+4.0.4 (for MC1.13.2)
+Fixed torchlight bug reported by AgentWolfTV - thank you.
+Added protection for an Index out of Range error (https://pastebin.com/9uu7DFUV reported by AgentWolfTV - thank you)
+
 4.0.2 (for MC1.13.2)
 Updated for MC1.13.2
 New Config files sel-client.toml and sel-server.toml.  
