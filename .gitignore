@@ -16,3 +16,4 @@ SmoothEntityLights/run
 .classpath
 .project
 gradle.properties
+*.launch
