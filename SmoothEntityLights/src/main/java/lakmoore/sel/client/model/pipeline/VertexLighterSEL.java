@@ -138,13 +138,13 @@ public class VertexLighterSEL extends VertexLighterFlat {
                 {
                     case POSITION:
                         final net.minecraft.client.renderer.Vector4f pos = new net.minecraft.client.renderer.Vector4f(
-                                position[v][0], position[v][1], position[v][2], 1);
+                                position[order[v]][0], position[order[v]][1], position[order[v]][2], 1);
                         pos.transform(pose.getMatrix());
 
-                        position[v][0] = pos.getX();
-                        position[v][1] = pos.getY();
-                        position[v][2] = pos.getZ();
-                        parent.put(e, position[v]);
+                        position[order[v]][0] = pos.getX();
+                        position[order[v]][1] = pos.getY();
+                        position[order[v]][2] = pos.getZ();
+                        parent.put(e, position[order[v]]);
                         break;
                     case NORMAL:
                         final net.minecraft.client.renderer.Vector3f norm = new net.minecraft.client.renderer.Vector3f(normal[order[v]]);
