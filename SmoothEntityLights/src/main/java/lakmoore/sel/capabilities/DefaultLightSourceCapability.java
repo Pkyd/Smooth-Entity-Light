@@ -55,7 +55,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 
 		adaptors = new ArrayList<BaseAdaptor>();
 		prevLight = 0;
-		prev = new Vec3d(entity.posX, entity.posY, entity.posZ);
+		prev = entity.getEyePosition(1f);
 		prevBlock = new BlockPos(prev);
 
 		checkDistanceLOD();
@@ -121,7 +121,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 			return result;
 		}
 
-		Vec3d current = new Vec3d(entity.posX, entity.posY, entity.posZ);
+		Vec3d current = entity.getEyePosition(1f);
 		
 		// If the entity has moved or changed light level
 		if (current.squareDistanceTo(prev) > maxDiff || lightLevel != prevLight) {
@@ -173,7 +173,7 @@ public class DefaultLightSourceCapability implements ICapabilityProvider, ILight
 		maxDiff = maxDiffNear;
 		if (
 			thePlayer != null
-			&& prev.squareDistanceTo(thePlayer.posX, thePlayer.posY, thePlayer.posZ) > farDistSq
+			&& prev.squareDistanceTo(thePlayer.getEyePosition(1f)) > farDistSq
 		) {
 			maxDiff = maxDiffFar;
 		}

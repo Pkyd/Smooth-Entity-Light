@@ -3,7 +3,7 @@ package lakmoore.sel.capabilities;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.client.renderer.chunk.ChunkRender;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 
@@ -18,9 +18,9 @@ public interface ILitChunkCache {
 	 * yChunk value is also between 0 and 15
 	 */
 	
-	public void setRenderChunk(int yChunk, ChunkRender renderChunk);
+	public void setRenderChunk(int yChunk, ChunkRenderDispatcher.ChunkRender renderChunk);
 	public Set<Integer> getDirtyRenderChunkYs();
-	public ChunkRender getRenderChunk(int yChunk);
+	public ChunkRenderDispatcher.ChunkRender getRenderChunk(int yChunk);
 	
 	public void setChunkPos(int x, int z);
 	public int getX();

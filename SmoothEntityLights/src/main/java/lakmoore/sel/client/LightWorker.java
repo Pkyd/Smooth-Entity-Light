@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import lakmoore.sel.capabilities.ILightSourceCapability;
 import lakmoore.sel.capabilities.ILitChunkCache;
 import net.minecraft.client.renderer.ViewFrustum;
-import net.minecraft.client.renderer.chunk.ChunkRender;
-import net.minecraft.client.renderer.culling.ICamera;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.culling.ClippingHelperImpl;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -31,7 +31,7 @@ public class LightWorker extends Thread {
 
 	// properties that will be updated from the game event(s)
 	private volatile Entity player;
-	private volatile ICamera iCamera;
+	private volatile ClippingHelperImpl iCamera;
 	private volatile ViewFrustum frustum;
 	private volatile Vec3d cameraPos;
 	private volatile float maxDistSq;
@@ -77,7 +77,7 @@ public class LightWorker extends Thread {
 		this.player = player;
 		this.cameraPos = this.player.getEyePosition(partialTicks);
 		if (this.iCamera != null) {
-			this.iCamera.setPosition(cameraPos.x, cameraPos.y, cameraPos.z);			
+			this.iCamera.setCameraPosition(cameraPos.x, cameraPos.y, cameraPos.z);			
 		}
 	}
 	
@@ -90,12 +90,12 @@ public class LightWorker extends Thread {
 		this.blocksToUpdate.addAll(source.getBlocksToUpdate());
 	}
 	
-	public void updateCamera(ICamera camera, float partialTicks, int renderDistanceChunks) {
+	public void updateCamera(ClippingHelperImpl camera, float partialTicks, int renderDistanceChunks) {
 		this.iCamera = camera;
 		this.partialTicks = partialTicks;
 		if (this.player != null) {
 			this.cameraPos = this.player.getEyePosition(partialTicks);
-			this.iCamera.setPosition(cameraPos.x, cameraPos.y, cameraPos.z);
+			this.iCamera.setCameraPosition(cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 		this.maxDistSq = renderDistanceChunks * 0.75f * renderDistanceChunks * 0.75f * 256.0f;
 	}
@@ -214,7 +214,7 @@ public class LightWorker extends Thread {
 								Set<ILitChunkCache> result = new HashSet<ILitChunkCache>();
 
 								// Get all the chunks we are interested in
-								Set<ChunkRender> renderChunks = Arrays.asList(this.frustum.renderChunks).stream()
+								Set<ChunkRenderDispatcher.ChunkRender> renderChunks = Arrays.asList(this.frustum.renderChunks).stream()
 										.filter(renderChunk -> renderChunk != null
 											// AND this chunk is visible
 //											&& this.iCamera.isBoundingBoxInFrustum(renderChunk.boundingBox)

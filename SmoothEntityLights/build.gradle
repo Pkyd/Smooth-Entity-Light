@@ -44,7 +44,7 @@ task wrapper(type: Wrapper) {
 }
 
 minecraft {
-    mappings channel: 'stable', version: "${config.mappings}-${config.mc_version}"
+    mappings channel: 'snapshot', version: "${config.mappings}"
 	accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
 	// Default run configurations.

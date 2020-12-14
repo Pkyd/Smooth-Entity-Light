@@ -1,6 +1,5 @@
 package lakmoore.sel.client.model.pipeline;
 
-import javax.vecmath.Vector3f;
 
 import lakmoore.sel.capabilities.ILitChunkCache;
 import lakmoore.sel.client.ClientProxy;
@@ -8,6 +7,7 @@ import lakmoore.sel.client.LightUtils;
 import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.renderer.vertex.VertexFormatElement;
+import net.minecraft.client.renderer.Vector3f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.client.model.pipeline.VertexLighterFlat;
@@ -30,9 +30,9 @@ public class VertexLighterSEL extends VertexLighterFlat {
         float[][] color = quadData[colorIndex];
 
         if (dataLength[normalIndex] >= 3
-            && (quadData[normalIndex][0][0] != -1
-            ||  quadData[normalIndex][0][1] != -1
-            ||  quadData[normalIndex][0][2] != -1))
+            && (quadData[normalIndex][0][0] != 0
+            ||  quadData[normalIndex][0][1] != 0
+            ||  quadData[normalIndex][0][2] != 0))
         {
             normal = quadData[normalIndex];
         }
@@ -45,13 +45,13 @@ public class VertexLighterSEL extends VertexLighterFlat {
             v1.sub(t);
             t.set(position[0]);
             v2.sub(t);
-            v1.cross(v2, v1);
+            v2.cross(v1);
             v1.normalize();
             for(int v = 0; v < 4; v++)
             {
-                normal[v][0] = v1.x;
-                normal[v][1] = v1.y;
-                normal[v][2] = v1.z;
+                normal[v][0] = v2.getX();
+                normal[v][1] = v2.getY();
+                normal[v][2] = v2.getZ();
                 normal[v][3] = 0;
             }
         }
@@ -63,7 +63,7 @@ public class VertexLighterSEL extends VertexLighterFlat {
         }
         
         VertexFormat format = parent.getVertexFormat();
-        int count = format.getElementCount();
+        int count = format.getElements().size();
                 
         for(int v = 0; v < 4; v++)
         {            
@@ -102,8 +102,8 @@ public class VertexLighterSEL extends VertexLighterFlat {
             Vec3d vertPos = new Vec3d(this.blockInfo.getBlockPos()).add(position[v][0], position[v][1], position[v][2]);
             ILitChunkCache lcc = LightUtils.getLitChunkCache(ClientProxy.mcinstance.world, (int)Math.round(vertPos.x) >> 4, (int)Math.round(vertPos.z) >> 4);
         	// Save the light value into the cache
-            lcc.setMCVertexLight(vertPos.x, vertPos.y, vertPos.z, (short)Math.round(lightmap[v][0] * 0x7FFF)); 
-            lightmap[v][0] = (float)lcc.getVertexLight(vertPos.x, vertPos.y, vertPos.z) / 0x7FFF; 
+            lcc.setMCVertexLight(vertPos.x, vertPos.y, vertPos.z, (short)Math.round(lightmap[v][0] * 0xF0)); 
+            lightmap[v][0] = (float)lcc.getVertexLight(vertPos.x, vertPos.y, vertPos.z) / 0xF0; 
 
         }
                         
@@ -111,45 +111,50 @@ public class VertexLighterSEL extends VertexLighterFlat {
         int[] flipped = { 1, 2, 3, 0 };
 
         // re-order the triangles in the quad so brightness is always blended smoothly
-        if (
-        		(
-	        		(lightmap[3][0] + lightmap[3][1]) 
-	        		-
-	        		(lightmap[0][0] + lightmap[0][1])
-        		)
-        	<
-        		(
-	        		(lightmap[2][0] + lightmap[2][1]) 
-	        		-
-	        		(lightmap[1][0] + lightmap[1][1])
-        		)
-            	
-    	) {
-        	order = flipped;
-        }
+//        if (
+//        		(
+//	        		(lightmap[3][0] + lightmap[3][1]) 
+//	        		-
+//	        		(lightmap[0][0] + lightmap[0][1])
+//        		)
+//        	<
+//        		(
+//	        		(lightmap[2][0] + lightmap[2][1]) 
+//	        		-
+//	        		(lightmap[1][0] + lightmap[1][1])
+//        		)
+//            	
+//    	) {
+//        	order = flipped;
+//        }
 
         for(int v = 0; v < 4; v++)
         {
             // no need for remapping cause all we could've done is add 1 element to the end
             for(int e = 0; e < count; e++)
             {
-                VertexFormatElement element = format.getElement(e);
+                VertexFormatElement element = format.getElements().get(e);
                 switch(element.getUsage())
                 {
                     case POSITION:
-                        // position adding moved to VertexBufferConsumer due to x and z not fitting completely into a float
-                        /*float[] pos = new float[4];
-                        System.arraycopy(position[v], 0, pos, 0, position[v].length);
-                        pos[0] += blockInfo.getBlockPos().getX();
-                        pos[1] += blockInfo.getBlockPos().getY();
-                        pos[2] += blockInfo.getBlockPos().getZ();*/
-                        parent.put(e, position[order[v]]);
+                        final net.minecraft.client.renderer.Vector4f pos = new net.minecraft.client.renderer.Vector4f(
+                                position[v][0], position[v][1], position[v][2], 1);
+                        pos.transform(pose.getMatrix());
+
+                        position[v][0] = pos.getX();
+                        position[v][1] = pos.getY();
+                        position[v][2] = pos.getZ();
+                        parent.put(e, position[v]);
                         break;
-                    case NORMAL: if(normalIndex != -1)
-                    {
+                    case NORMAL:
+                        final net.minecraft.client.renderer.Vector3f norm = new net.minecraft.client.renderer.Vector3f(normal[order[v]]);
+                        norm.transform(pose.getNormal());
+
+                        normal[order[v]][0] = norm.getX();
+                        normal[order[v]][1] = norm.getY();
+                        normal[order[v]][2] = norm.getZ();
                         parent.put(e, normal[order[v]]);
                         break;
-                    }
                     case COLOR:
                     	boolean debug = false;
                     	if (debug) {
@@ -171,7 +176,7 @@ public class VertexLighterSEL extends VertexLighterFlat {
                           parent.put(e, color[order[v]]);                    		
                     	}
                         break;
-                    case UV: if(element.getIndex() == 1)
+                    case UV: if(element.getIndex() == 2)
                     {
                         parent.put(e, lightmap[order[v]]);
                         break;

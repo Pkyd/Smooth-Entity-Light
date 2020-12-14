@@ -1,7 +1,8 @@
 {
+	"SEL Minecraft Transformer": "coremods/Minecraft.js",
 	"SEL Chunk Transformer": "coremods/ClassInheritanceMultiMap.js",
-	"SEL WorldClient Transformer": "coremods/WorldClient.js",
-	"SEL RenderChunkCache Transformer": "coremods/RenderChunkCache.js",
+//	"SEL WorldClient Transformer": "coremods/WorldClient.js",
+//	"SEL RenderChunkCache Transformer": "coremods/RenderChunkCache.js",
 	"SEL ForgeBlockModelRenderer Transformer": "coremods/VertexLighterFlat.js",
 	"SEL VertexLighterSmoothAo Transformer": "coremods/VertexLighterSmoothAo.js"
 }

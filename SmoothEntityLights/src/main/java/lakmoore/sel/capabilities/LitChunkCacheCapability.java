@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lakmoore.sel.client.ClientProxy;
 import lakmoore.sel.client.LightUtils;
 import lakmoore.sel.client.SEL;
-import net.minecraft.client.renderer.chunk.ChunkRender;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
@@ -26,7 +26,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	private short[][][][] mcLight;
 	private List<Set<BlockPos>> dirtyBlocks;
 	private boolean[] dirtyChunk;
-	private ChunkRender[] renderChunks;
+	private ChunkRenderDispatcher.ChunkRender[] renderChunks;
 	private int chunkX;
 	private int chunkZ;
 
@@ -39,7 +39,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 			dirtyBlocks.add(ConcurrentHashMap.newKeySet());
 		}
 		dirtyChunk = new boolean[16];
-		renderChunks = new ChunkRender[16];
+		renderChunks = new ChunkRenderDispatcher.ChunkRender[16];
 	}
 	
 	@Override
@@ -60,7 +60,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public void setRenderChunk(int yChunk, ChunkRender renderChunk) {
+	public void setRenderChunk(int yChunk, ChunkRenderDispatcher.ChunkRender renderChunk) {
 		this.renderChunks[yChunk & 0xF] = renderChunk;
 	}
 
@@ -76,7 +76,7 @@ public class LitChunkCacheCapability implements ICapabilityProvider, ILitChunkCa
 	}
 
 	@Override
-	public ChunkRender getRenderChunk(int yChunk) {
+	public ChunkRenderDispatcher.ChunkRender getRenderChunk(int yChunk) {
 		return this.renderChunks[yChunk & 0xF];
 	}
 
