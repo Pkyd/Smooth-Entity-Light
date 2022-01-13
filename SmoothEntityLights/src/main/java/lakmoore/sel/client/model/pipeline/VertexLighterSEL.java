@@ -196,7 +196,6 @@ public class VertexLighterSEL extends VertexLighterFlat {
     {
     	super.setQuadTint(tint);
         this.tint = tint;	
-        }
     }
     
     @Override
