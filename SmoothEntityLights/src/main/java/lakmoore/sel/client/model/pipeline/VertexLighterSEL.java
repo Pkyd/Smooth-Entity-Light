@@ -195,9 +195,7 @@ public class VertexLighterSEL extends VertexLighterFlat {
     public void setQuadTint(int tint)
     {
     	super.setQuadTint(tint);
-        this.tint = tint;
-        if (tint > 0) {
-            System.out.println("Tint set to " + tint);        	
+        this.tint = tint;	
         }
     }
     
